@@ -2,10 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // 静的出力: GitHub Pages / Cloudflare Pages にデプロイ可能
-  // API Routes を追加したら output: 'export' を削除して Vercel/Cloudflare Workers に移行
-  output: "export",
-  trailingSlash: true,
+  // Cloudflare Pages (OpenNext) に必要な standalone 出力
+  // output: 'export' は OpenNext と競合するため使用しない
+  output: "standalone",
 };
 
 export default nextConfig;
