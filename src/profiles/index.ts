@@ -38,6 +38,7 @@ const DEFAULT_AI_PERSONA: AiPersona = {
   systemPrompt: 'あなたは気さくで頼りになるAIアシスタントです。',
   avatarUrl: '',
   userCallName: 'あんた',
+  apiKey: '',
 }
 
 const DEFAULT_WORK_PROFILE: Profile = {

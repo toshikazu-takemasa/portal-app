@@ -188,7 +188,35 @@ export default function Settings() {
                 className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
               />
             </div>
+            <Field
+              label="Anthropic API キー"
+              hint="AIサマリー機能に使用"
+              type="password"
+              value={profile.ai_persona?.apiKey ?? ''}
+              onChange={(v) => updateAiPersona('apiKey', v)}
+              placeholder="sk-ant-xxxxxxxxxxxx"
+            />
           </Section>
+
+          {/* Backlog 設定 */}
+          {profile.features.backlog && (
+            <Section title="Backlog">
+              <Field
+                label="スペース ID"
+                hint="例: myspace.backlog.com"
+                value={profile.backlog_space_id ?? ''}
+                onChange={(v) => updateField('backlog_space_id', v)}
+                placeholder="myspace.backlog.com"
+              />
+              <Field
+                label="API キー"
+                type="password"
+                value={profile.backlog_api_key ?? ''}
+                onChange={(v) => updateField('backlog_api_key', v)}
+                placeholder="xxxxxxxxxxxxxxxxxxxx"
+              />
+            </Section>
+          )}
 
           {/* 機能フラグ */}
           <Section title="機能 ON/OFF">

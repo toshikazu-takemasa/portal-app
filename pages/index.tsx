@@ -1,120 +1,161 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import {
-  getActiveProfile,
-  isFeatureEnabled,
-} from '@/profiles/index'
-import type { Profile } from '@/shared/types'
+import { getActiveProfile, isFeatureEnabled, createStorageAdapter } from '@/profiles'
+import type { Profile, QuickLink } from '@/shared/types'
 
 export default function Home() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isConfigured, setIsConfigured] = useState(false)
+  const [quickLinks, setQuickLinks] = useState<QuickLink[]>([])
 
   useEffect(() => {
     const p = getActiveProfile()
     setProfile(p)
     setIsConfigured(!!p.gh_pat && !!p.github_repo)
+
+    // クイックリンクを取得（エラーは無視）
+    if (p.gh_pat && p.github_repo) {
+      const adapter = createStorageAdapter()
+      adapter
+        .getPortalConfig()
+        .then((config) => {
+          if (config.links?.length) {
+            setQuickLinks(
+              [...config.links].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+            )
+          }
+        })
+        .catch(() => {})
+    }
   }, [])
 
   if (!profile) return null
+
+  const persona = profile.ai_persona
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
       {/* Header */}
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-tight">Portal</h1>
+        <div className="flex items-center gap-3">
+          {persona?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={persona.avatarUrl}
+              alt={persona.name}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-xl">{profile.emoji}</span>
+          )}
+          <h1 className="text-lg font-semibold tracking-tight">Portal</h1>
+        </div>
 
         <div className="flex items-center gap-2">
           {/* プロファイル表示のみ（ADR-005: 切り替えはUI非対応、設定画面経由） */}
-          <span className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium bg-zinc-800 text-zinc-300">
-            <span>{profile.emoji}</span>
-            <span>{profile.label}</span>
+          <span className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-zinc-800 text-zinc-400">
+            {profile.emoji} {profile.label}
           </span>
 
-          {/* Settings Button */}
+          {/* 設定ボタン */}
           <button
             onClick={() => router.push('/settings')}
             className="rounded-full p-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
             title="設定"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
           </button>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="max-w-2xl mx-auto px-6 py-12">
-        {/* 未設定の場合 */}
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        {/* 未設定の場合の警告 */}
         {!isConfigured && (
-          <div className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
+          <div
+            className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 cursor-pointer"
+            onClick={() => router.push('/settings')}
+          >
             <p className="text-sm text-amber-400 font-medium">
               GitHub PAT とリポジトリを設定してください
             </p>
             <p className="mt-1 text-xs text-zinc-400">
-              設定 → {profile.emoji} {profile.label} プロファイル → PAT・リポジトリ入力
+              クリックして設定画面へ → PAT・リポジトリを入力する
             </p>
           </div>
         )}
 
-        {/* プロファイル情報 */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">{profile.emoji}</span>
+        {/* AI 人格 挨拶 */}
+        {persona?.name && isConfigured && (
+          <div className="mb-8 flex items-center gap-3">
+            {persona.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={persona.avatarUrl}
+                alt={persona.name}
+                className="w-10 h-10 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <span className="text-3xl shrink-0">🤖</span>
+            )}
             <div>
-              <h2 className="text-base font-semibold">{profile.label} プロファイル</h2>
-              <p className="text-sm text-zinc-400">
-                {profile.github_repo || '（リポジトリ未設定）'}
+              <p className="text-sm text-zinc-300">
+                おはよう、{persona.userCallName}。今日も一緒に頑張ろう。
               </p>
+              <p className="text-xs text-zinc-600 mt-0.5">— {persona.name}</p>
             </div>
           </div>
+        )}
 
-          {/* 有効な機能 */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            {(Object.entries(profile.features) as [string, boolean][])
-              .filter(([, enabled]) => enabled)
-              .map(([key]) => (
-                <span
-                  key={key}
-                  className="rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300"
-                >
-                  {key}
-                </span>
-              ))}
-          </div>
-        </div>
-
-        {/* 機能カード（仮） */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* 機能カード */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
           <FeatureCard
             icon="📓"
             title="日記"
             description="今日の記録を書く"
-            enabled
+            onClick={() => router.push('/diary')}
           />
           <FeatureCard
             icon="✅"
             title="チェックリスト"
             description="今日のタスクを確認"
-            enabled
+            onClick={() => router.push('/checklist')}
           />
+          {isFeatureEnabled('calendar') && (
+            <FeatureCard
+              icon="📅"
+              title="カレンダー"
+              description="記録の日を一覧で確認"
+              onClick={() => router.push('/calendar')}
+            />
+          )}
           {isFeatureEnabled('ai_summary') && (
             <FeatureCard
               icon="🤖"
-              title="AIサマリー"
-              description="今日の記録を要約"
-              enabled
+              title="AIフィードバック"
+              description="日記を書いて AI に聞く"
+              onClick={() => router.push('/diary')}
             />
           )}
           {isFeatureEnabled('backlog') && (
             <FeatureCard
               icon="📋"
               title="Backlog"
-              description="課題を確認"
-              enabled
+              description="担当課題を確認"
+              onClick={() => router.push('/backlog')}
             />
           )}
           {isFeatureEnabled('finance') && (
@@ -122,18 +163,33 @@ export default function Home() {
               icon="💰"
               title="家計管理"
               description="収支を記録"
-              enabled
-            />
-          )}
-          {isFeatureEnabled('calendar') && (
-            <FeatureCard
-              icon="📅"
-              title="カレンダー"
-              description="スケジュール確認"
-              enabled
+              onClick={() => router.push('/finance')}
             />
           )}
         </div>
+
+        {/* クイックリンク */}
+        {quickLinks.length > 0 && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-4">
+              クイックリンク
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {quickLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                >
+                  <span className="text-base shrink-0">{link.emoji}</span>
+                  <span className="truncate">{link.name}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
@@ -143,19 +199,21 @@ function FeatureCard({
   icon,
   title,
   description,
-  enabled,
+  onClick,
 }: {
   icon: string
   title: string
   description: string
-  enabled: boolean
+  onClick: () => void
 }) {
-  if (!enabled) return null
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-zinc-600 transition-colors cursor-pointer">
+    <button
+      onClick={onClick}
+      className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-zinc-600 hover:bg-zinc-800 transition-all text-left w-full"
+    >
       <span className="text-2xl">{icon}</span>
       <h3 className="mt-3 text-sm font-semibold">{title}</h3>
       <p className="mt-1 text-xs text-zinc-400">{description}</p>
-    </div>
+    </button>
   )
 }

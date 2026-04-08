@@ -31,6 +31,7 @@ export interface AiPersona {
   systemPrompt: string   // システムプロンプト（AIの性格・口調）
   avatarUrl: string      // アバター画像URL or パス（空文字でデフォルト）
   userCallName: string   // ユーザーの呼び方（例: "あんた"）
+  apiKey: string         // Anthropic API キー（AIサマリー用）
 }
 
 export interface Profile {
@@ -46,6 +47,8 @@ export interface Profile {
   config_path: string    // portal-config.json のパス
   features: FeatureFlags
   ai_persona: AiPersona
+  backlog_space_id?: string  // Backlog スペース ID（例: "myspace.backlog.com"）
+  backlog_api_key?: string   // Backlog API キー
 }
 
 export type ProfilesMap = Record<ProfileId, Profile>
