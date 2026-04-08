@@ -6,7 +6,7 @@ import {
   getActiveProfileId,
   switchProfile,
 } from '@/profiles/index'
-import type { Profile, ProfileId, FeatureFlags } from '@/shared/types'
+import type { Profile, ProfileId, FeatureFlags, AiPersona } from '@/shared/types'
 
 const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
   backlog: 'Backlog連携',
@@ -15,7 +15,6 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
   ai_summary: 'AIサマリー',
   voice_input: '音声入力（将来）',
   calendar: 'カレンダー表示',
-  gemini: 'Gemini API',
 }
 
 export default function Settings() {
@@ -55,6 +54,20 @@ export default function Settings() {
     setSaved(false)
   }
 
+  function updateAiPersona(key: keyof AiPersona, value: string) {
+    setProfiles((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          ai_persona: { ...prev[activeTab].ai_persona, [key]: value },
+        },
+      }
+    })
+    setSaved(false)
+  }
+
   function handleSave() {
     if (!profiles) return
     saveProfile(activeTab, profiles[activeTab])
@@ -62,7 +75,9 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  function handleSwitchAndBack(id: ProfileId) {
+  function handleSetActive(id: ProfileId) {
+    if (!profiles) return
+    saveProfile(id, profiles[id])
     switchProfile(id) // reloads the page
   }
 
@@ -140,6 +155,41 @@ export default function Settings() {
             />
           </Section>
 
+          {/* AI人格設定 */}
+          <Section title="AI人格設定">
+            <Field
+              label="AI名"
+              value={profile.ai_persona?.name ?? 'パートナー'}
+              onChange={(v) => updateAiPersona('name', v)}
+              placeholder="パートナー"
+            />
+            <Field
+              label="ユーザーの呼び方"
+              value={profile.ai_persona?.userCallName ?? 'あんた'}
+              onChange={(v) => updateAiPersona('userCallName', v)}
+              placeholder="あんた"
+            />
+            <Field
+              label="アバター画像URL"
+              value={profile.ai_persona?.avatarUrl ?? ''}
+              onChange={(v) => updateAiPersona('avatarUrl', v)}
+              placeholder="https://example.com/avatar.png"
+            />
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1">
+                システムプロンプト
+                <span className="ml-2 text-zinc-600">AIの性格・口調</span>
+              </label>
+              <textarea
+                value={profile.ai_persona?.systemPrompt ?? ''}
+                onChange={(e) => updateAiPersona('systemPrompt', e.target.value)}
+                rows={4}
+                placeholder="あなたは気さくで頼りになるAIアシスタントです。"
+                className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
+              />
+            </div>
+          </Section>
+
           {/* 機能フラグ */}
           <Section title="機能 ON/OFF">
             <div className="space-y-3">
@@ -170,14 +220,15 @@ export default function Settings() {
             )}
           </div>
 
-          {/* アクティブプロファイルへ切り替え */}
+          {/* 使用プロファイル切り替え（設定画面経由のみ） */}
           {getActiveProfileId() !== activeTab && (
-            <div className="pt-2">
+            <div className="pt-2 border-t border-zinc-800">
+              <p className="text-xs text-zinc-500 mb-2">現在のアクティブプロファイル: {profiles[getActiveProfileId()].emoji} {profiles[getActiveProfileId()].label}</p>
               <button
-                onClick={() => handleSwitchAndBack(activeTab)}
+                onClick={() => handleSetActive(activeTab)}
                 className="text-sm text-zinc-400 hover:text-zinc-100 underline underline-offset-2"
               >
-                {profiles[activeTab].emoji} {profiles[activeTab].label} に切り替えてトップへ戻る
+                {profiles[activeTab].emoji} {profiles[activeTab].label} をアクティブにする（保存してリロード）
               </button>
             </div>
           )}

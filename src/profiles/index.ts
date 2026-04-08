@@ -4,7 +4,7 @@
 // 既存の gh_pat / github_repo localStorage キーからマイグレーション
 // ============================================================
 
-import type { Profile, ProfileId, ProfilesMap, FeatureFlags } from '@/shared/types'
+import type { Profile, ProfileId, ProfilesMap, FeatureFlags, AiPersona } from '@/shared/types'
 import { GitHubStorageAdapter } from '@/storage/github'
 import type { StorageAdapter } from '@/storage/interface'
 
@@ -22,7 +22,6 @@ const DEFAULT_FEATURES_WORK: FeatureFlags = {
   ai_summary: true,
   voice_input: false,
   calendar: true,
-  gemini: false,
 }
 
 const DEFAULT_FEATURES_PERSONAL: FeatureFlags = {
@@ -32,7 +31,13 @@ const DEFAULT_FEATURES_PERSONAL: FeatureFlags = {
   ai_summary: true,
   voice_input: false,
   calendar: true,
-  gemini: true,
+}
+
+const DEFAULT_AI_PERSONA: AiPersona = {
+  name: 'パートナー',
+  systemPrompt: 'あなたは気さくで頼りになるAIアシスタントです。',
+  avatarUrl: '',
+  userCallName: 'あんた',
 }
 
 const DEFAULT_WORK_PROFILE: Profile = {
@@ -47,6 +52,7 @@ const DEFAULT_WORK_PROFILE: Profile = {
   report_path: 'vault/reports',
   config_path: 'vault/config.json',
   features: DEFAULT_FEATURES_WORK,
+  ai_persona: { ...DEFAULT_AI_PERSONA },
 }
 
 const DEFAULT_PERSONAL_PROFILE: Profile = {
@@ -61,6 +67,7 @@ const DEFAULT_PERSONAL_PROFILE: Profile = {
   report_path: 'vault/diary',
   config_path: 'vault/config.json',
   features: DEFAULT_FEATURES_PERSONAL,
+  ai_persona: { ...DEFAULT_AI_PERSONA },
 }
 
 // ------------------------------------------------------------

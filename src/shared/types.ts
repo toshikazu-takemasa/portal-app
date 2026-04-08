@@ -14,7 +14,6 @@ export interface FeatureFlags {
   ai_summary: boolean    // AIサマリー
   voice_input: boolean   // 音声入力（将来）
   calendar: boolean      // カレンダー表示
-  gemini: boolean        // Gemini API（個人のみ）
 }
 
 // ------------------------------------------------------------
@@ -22,6 +21,17 @@ export interface FeatureFlags {
 // 仕事 / 個人のデータ接続先と機能フラグをまとめた設定
 // ------------------------------------------------------------
 export type ProfileId = 'work' | 'personal'
+
+// ------------------------------------------------------------
+// AI Persona（AI人格設定）
+// portalのキモ: AI名・システムプロンプト・アバター・ユーザー呼称
+// ------------------------------------------------------------
+export interface AiPersona {
+  name: string           // AI名（例: "パートナー"）
+  systemPrompt: string   // システムプロンプト（AIの性格・口調）
+  avatarUrl: string      // アバター画像URL or パス（空文字でデフォルト）
+  userCallName: string   // ユーザーの呼び方（例: "あんた"）
+}
 
 export interface Profile {
   id: ProfileId
@@ -35,6 +45,7 @@ export interface Profile {
   report_path: string    // 日報保存パス（例: "vault/reports"）
   config_path: string    // portal-config.json のパス
   features: FeatureFlags
+  ai_persona: AiPersona
 }
 
 export type ProfilesMap = Record<ProfileId, Profile>

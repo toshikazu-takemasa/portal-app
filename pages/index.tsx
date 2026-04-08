@@ -2,24 +2,18 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import {
   getActiveProfile,
-  getActiveProfileId,
-  getAllProfiles,
-  switchProfile,
   isFeatureEnabled,
 } from '@/profiles/index'
-import type { Profile, ProfileId } from '@/shared/types'
+import type { Profile } from '@/shared/types'
 
 export default function Home() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [activeId, setActiveId] = useState<ProfileId>('work')
   const [isConfigured, setIsConfigured] = useState(false)
 
   useEffect(() => {
     const p = getActiveProfile()
-    const id = getActiveProfileId()
     setProfile(p)
-    setActiveId(id)
     setIsConfigured(!!p.gh_pat && !!p.github_repo)
   }, [])
 
@@ -32,24 +26,11 @@ export default function Home() {
         <h1 className="text-lg font-semibold tracking-tight">Portal</h1>
 
         <div className="flex items-center gap-2">
-          {(['work', 'personal'] as ProfileId[]).map((id) => {
-            const p = getAllProfiles()[id]
-            const isActive = activeId === id
-            return (
-              <button
-                key={id}
-                onClick={() => switchProfile(id)}
-                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-zinc-100 text-zinc-900'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
-                }`}
-              >
-                <span>{p?.emoji ?? '?'}</span>
-                <span>{p?.label ?? id}</span>
-              </button>
-            )
-          })}
+          {/* プロファイル表示のみ（ADR-005: 切り替えはUI非対応、設定画面経由） */}
+          <span className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium bg-zinc-800 text-zinc-300">
+            <span>{profile.emoji}</span>
+            <span>{profile.label}</span>
+          </span>
 
           {/* Settings Button */}
           <button
