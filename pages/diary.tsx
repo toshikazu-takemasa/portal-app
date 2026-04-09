@@ -7,7 +7,7 @@ import {
   getTodayDateString,
 } from '@/domains/journal'
 import { summarizeJournal } from '@/domains/ai'
-import { isFeatureEnabled, getActiveProfileId, getActiveProfile } from '@/profiles'
+import { isFeatureEnabled } from '@/profiles'
 import type { JournalEntry } from '@/shared/types'
 
 export default function DiaryPage() {
@@ -36,7 +36,7 @@ export default function DiaryPage() {
   // AI機能が使えるか確認
   useEffect(() => {
     const profile = getActiveProfile()
-    setAiAvailable(isFeatureEnabled('ai_summary') && !!profile.ai_persona?.apiKey)
+    setAiAvailable(isFeatureEnabled('ai_summary'))
   }, [])
 
   // 最近の日付一覧を取得

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getBacklogIssues } from '@/domains/ai'
-import { isFeatureEnabled, getActiveProfile } from '@/profiles'
+import { isFeatureEnabled } from '@/profiles'
 import type { BacklogIssue } from '@/domains/ai'
 
 const STATUS_COLOR: Record<string, string> = {

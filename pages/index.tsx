@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getActiveProfile, isFeatureEnabled, createStorageAdapter } from '@/profiles'
+import { isFeatureEnabled, createStorageAdapter } from '@/profiles'
 import type { Profile, QuickLink } from '@/shared/types'
 
 export default function Home() {

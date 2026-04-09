@@ -76,7 +76,7 @@
 
 ```typescript
 interface Profile {
-  id: 'work' | 'personal'
+  id: string
   label: string
   gh_pat: string
   github_repo: string
@@ -89,10 +89,10 @@ interface Profile {
 }
 
 interface FeatureFlags {
-  backlog: boolean          // 仕事のみ true
-  finance: boolean          // 個人のみ true
+  backlog: boolean
+  finance: boolean
   ai_ticker: boolean
-  voice_input: boolean      // 将来
+  voice_input: boolean
   ai_summary: boolean
   calendar: boolean
 }
@@ -106,7 +106,7 @@ interface FeatureFlags {
 |---|---|---|
 | UC-01 | 今日の日記を書いて保存する | 両方 |
 | UC-02 | 過去の日記を日付で読む | 両方 |
-| UC-03 | プロファイルをワンクリック切り替える | 両方 |
+<!-- UC-03（プロファイル切り替え）は廃止 -->
 | UC-04 | AIに今日の記録をサマリーさせる | 両方 |
 | UC-05 | チェックリストを完了状態で保存する | 両方 |
 | UC-06 | 家計を記録する | 個人のみ |
@@ -135,10 +135,13 @@ interface FeatureFlags {
 - [ ] `types.ts`（Profile, FeatureFlags, StorageAdapter インターフェース）を先に定義
 - [ ] GitHub Pages / Cloudflare Pages にデプロイして動作確認
 
-### Phase 2: プロファイル切り替え実装
-- [ ] `profiles/` モジュール（getActiveProfile, switchProfile, isFeatureEnabled）
+
+### Phase 2: 機能フラグ方式への移行
+- [ ] `profiles/` モジュールの整理（プロファイル分離→単一プロファイル＋機能フラグON/OFF方式へ）
 - [ ] 設定UIでPAT + リポジトリ + 機能フラグを管理
-- [ ] プロファイル切り替えボタンをヘッダーに追加
+- [ ] 各機能を「ON/OFF」できるUIを追加（マーケットプレイス的なUX）
+
+> **方針転換理由**: 仕事/プライベートで異なるのは主に用語（日報/日記など）のみであり、システム分離によるコストが高いため。今後は「プロファイル切り替え」ではなく、単一プロファイル＋機能ごとのON/OFF制御に一本化する。
 
 ### Phase 3: StorageAdapter + ドメイン実装
 - [ ] `storage/interface.ts` → `storage/github.ts` の実装

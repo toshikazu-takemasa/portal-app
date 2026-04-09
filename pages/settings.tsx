@@ -1,12 +1,8 @@
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import {
-  getAllProfiles,
-  saveProfile,
-  getActiveProfileId,
-  switchProfile,
-} from '@/profiles/index'
-import type { Profile, ProfileId, FeatureFlags, AiPersona } from '@/shared/types'
+import { getSettings, saveSettings } from '@/profiles/index'
+import type { Profile, FeatureFlags, AiPersona } from '@/shared/types'
 
 const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
   backlog: 'Backlog連携',
@@ -19,66 +15,35 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
 
 export default function Settings() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<ProfileId>('work')
-  const [profiles, setProfiles] = useState<Record<ProfileId, Profile> | null>(null)
+  const [settings, setSettings] = useState<Profile | null>(null)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    setProfiles(getAllProfiles())
-    setActiveTab(getActiveProfileId())
+    setSettings(getSettings())
   }, [])
 
-  if (!profiles) return null
-
-  const profile = profiles[activeTab]
+  if (!settings) return null
 
   function updateField<K extends keyof Profile>(key: K, value: Profile[K]) {
-    setProfiles((prev) => {
-      if (!prev) return prev
-      return { ...prev, [activeTab]: { ...prev[activeTab], [key]: value } }
-    })
+    setSettings((prev) => prev ? { ...prev, [key]: value } : prev)
     setSaved(false)
   }
 
   function updateFeature(key: keyof FeatureFlags, value: boolean) {
-    setProfiles((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        [activeTab]: {
-          ...prev[activeTab],
-          features: { ...prev[activeTab].features, [key]: value },
-        },
-      }
-    })
+    setSettings((prev) => prev ? { ...prev, features: { ...prev.features, [key]: value } } : prev)
     setSaved(false)
   }
 
   function updateAiPersona(key: keyof AiPersona, value: string) {
-    setProfiles((prev) => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        [activeTab]: {
-          ...prev[activeTab],
-          ai_persona: { ...prev[activeTab].ai_persona, [key]: value },
-        },
-      }
-    })
+    setSettings((prev) => prev ? { ...prev, ai_persona: { ...prev.ai_persona, [key]: value } } : prev)
     setSaved(false)
   }
 
   function handleSave() {
-    if (!profiles) return
-    saveProfile(activeTab, profiles[activeTab])
+    if (!settings) return
+    saveSettings(settings)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
-  }
-
-  function handleSetActive(id: ProfileId) {
-    if (!profiles) return
-    saveProfile(id, profiles[id])
-    switchProfile(id) // reloads the page
   }
 
   return (
@@ -95,24 +60,6 @@ export default function Settings() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10">
-        {/* Profile Tabs */}
-        <div className="flex gap-2 mb-8">
-          {(['work', 'personal'] as ProfileId[]).map((id) => (
-            <button
-              key={id}
-              onClick={() => { setActiveTab(id); setSaved(false) }}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeTab === id
-                  ? 'bg-zinc-100 text-zinc-900'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
-              }`}
-            >
-              <span>{profiles[id].emoji}</span>
-              <span>{profiles[id].label}</span>
-            </button>
-          ))}
-        </div>
-
         <div className="space-y-6">
           {/* GitHub 認証 */}
           <Section title="GitHub 認証">
@@ -120,7 +67,7 @@ export default function Settings() {
               label="Personal Access Token (PAT)"
               hint="repo スコープが必要"
               type="password"
-              value={profile.gh_pat}
+              value={settings.gh_pat}
               onChange={(v) => updateField('gh_pat', v)}
               placeholder="ghp_xxxxxxxxxxxx"
             />
@@ -131,25 +78,25 @@ export default function Settings() {
             <Field
               label="リポジトリ名"
               hint="owner/repo 形式"
-              value={profile.github_repo}
+              value={settings.github_repo}
               onChange={(v) => updateField('github_repo', v)}
               placeholder="toshikazu-takemasa/personal-vault-"
             />
             <Field
               label="ブランチ"
-              value={profile.github_branch}
+              value={settings.github_branch}
               onChange={(v) => updateField('github_branch', v)}
               placeholder="main"
             />
             <Field
               label="日記保存パス"
-              value={profile.diary_path}
+              value={settings.diary_path}
               onChange={(v) => updateField('diary_path', v)}
               placeholder="vault/diary"
             />
             <Field
               label="設定ファイルパス"
-              value={profile.config_path}
+              value={settings.config_path}
               onChange={(v) => updateField('config_path', v)}
               placeholder="vault/config.json"
             />
@@ -159,19 +106,19 @@ export default function Settings() {
           <Section title="AI人格設定">
             <Field
               label="AI名"
-              value={profile.ai_persona?.name ?? 'パートナー'}
+              value={settings.ai_persona?.name ?? 'パートナー'}
               onChange={(v) => updateAiPersona('name', v)}
               placeholder="パートナー"
             />
             <Field
               label="ユーザーの呼び方"
-              value={profile.ai_persona?.userCallName ?? 'あんた'}
+              value={settings.ai_persona?.userCallName ?? 'あんた'}
               onChange={(v) => updateAiPersona('userCallName', v)}
               placeholder="あんた"
             />
             <Field
               label="アバター画像URL"
-              value={profile.ai_persona?.avatarUrl ?? ''}
+              value={settings.ai_persona?.avatarUrl ?? ''}
               onChange={(v) => updateAiPersona('avatarUrl', v)}
               placeholder="https://example.com/avatar.png"
             />
@@ -181,7 +128,7 @@ export default function Settings() {
                 <span className="ml-2 text-zinc-600">AIの性格・口調</span>
               </label>
               <textarea
-                value={profile.ai_persona?.systemPrompt ?? ''}
+                value={settings.ai_persona?.systemPrompt ?? ''}
                 onChange={(e) => updateAiPersona('systemPrompt', e.target.value)}
                 rows={4}
                 placeholder="あなたは気さくで頼りになるAIアシスタントです。"
@@ -192,26 +139,26 @@ export default function Settings() {
               label="Anthropic API キー"
               hint="AIサマリー機能に使用"
               type="password"
-              value={profile.ai_persona?.apiKey ?? ''}
+              value={settings.ai_persona?.apiKey ?? ''}
               onChange={(v) => updateAiPersona('apiKey', v)}
               placeholder="sk-ant-xxxxxxxxxxxx"
             />
           </Section>
 
           {/* Backlog 設定 */}
-          {profile.features.backlog && (
+          {settings.features.backlog && (
             <Section title="Backlog">
               <Field
                 label="スペース ID"
                 hint="例: myspace.backlog.com"
-                value={profile.backlog_space_id ?? ''}
+                value={settings.backlog_space_id ?? ''}
                 onChange={(v) => updateField('backlog_space_id', v)}
                 placeholder="myspace.backlog.com"
               />
               <Field
                 label="API キー"
                 type="password"
-                value={profile.backlog_api_key ?? ''}
+                value={settings.backlog_api_key ?? ''}
                 onChange={(v) => updateField('backlog_api_key', v)}
                 placeholder="xxxxxxxxxxxxxxxxxxxx"
               />
@@ -226,7 +173,7 @@ export default function Settings() {
                   <label key={key} className="flex items-center justify-between">
                     <span className="text-sm text-zinc-300">{label}</span>
                     <Toggle
-                      value={profile.features[key]}
+                      value={settings.features[key]}
                       onChange={(v) => updateFeature(key, v)}
                     />
                   </label>
@@ -247,19 +194,6 @@ export default function Settings() {
               <span className="text-sm text-emerald-400">✓ 保存しました</span>
             )}
           </div>
-
-          {/* 使用プロファイル切り替え（設定画面経由のみ） */}
-          {getActiveProfileId() !== activeTab && (
-            <div className="pt-2 border-t border-zinc-800">
-              <p className="text-xs text-zinc-500 mb-2">現在のアクティブプロファイル: {profiles[getActiveProfileId()].emoji} {profiles[getActiveProfileId()].label}</p>
-              <button
-                onClick={() => handleSetActive(activeTab)}
-                className="text-sm text-zinc-400 hover:text-zinc-100 underline underline-offset-2"
-              >
-                {profiles[activeTab].emoji} {profiles[activeTab].label} をアクティブにする（保存してリロード）
-              </button>
-            </div>
-          )}
         </div>
       </main>
     </div>
