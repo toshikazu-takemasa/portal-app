@@ -35,7 +35,7 @@ export default function DiaryPage() {
 
   // AI機能が使えるか確認
   useEffect(() => {
-    const profile = getActiveProfile()
+    const profile = getSettings()
     setAiAvailable(isFeatureEnabled('ai_summary'))
   }, [])
 

@@ -8,7 +8,7 @@ import { createStorageAdapter, getActiveProfile } from '@/profiles'
 import type { FinanceRecord } from '@/shared/types'
 
 function getFinancePath(yearMonth: string): string {
-  const profile = getActiveProfile()
+  const profile = getSettings()
   return `${profile.vault_path}/finance/${yearMonth}.json`
 }
 
@@ -31,12 +31,12 @@ export async function saveRecord(record: FinanceRecord, yearMonth: string): Prom
   const file = await adapter.getFile(path)
   const records: FinanceRecord[] = file
     ? (() => {
-        try {
-          return JSON.parse(file.content) as FinanceRecord[]
-        } catch {
-          return []
-        }
-      })()
+      try {
+        return JSON.parse(file.content) as FinanceRecord[]
+      } catch {
+        return []
+      }
+    })()
     : []
 
   const idx = records.findIndex((r) => r.id === record.id)

@@ -47,7 +47,6 @@ pages/
   index.tsx             ← トップページ
 docs/
   adr/                  ← 設計決定記録
-  planning/             ← 改修計画・設計思想
 ```
 
 ## スキル

@@ -10,7 +10,7 @@ export default function Home() {
   const [quickLinks, setQuickLinks] = useState<QuickLink[]>([])
 
   useEffect(() => {
-    const p = getActiveProfile()
+    const p = getSettings()
     setProfile(p)
     setIsConfigured(!!p.gh_pat && !!p.github_repo)
 

@@ -8,7 +8,7 @@ import { getActiveProfile } from '@/profiles'
 
 /** 日記内容を AI にサマリーさせる */
 export async function summarizeJournal(content: string): Promise<string> {
-  const profile = getActiveProfile()
+  const profile = getSettings()
   const persona = profile.ai_persona
 
   if (!persona.apiKey) {

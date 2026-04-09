@@ -30,7 +30,7 @@ export function getTodayChecklist(date: string, template: ChecklistItem[]): Dail
     return {
       date,
       items: template.map((t) => ({ ...t, completed: false })),
-      profile: getActiveProfileId(),
+      profile: getSettings().id,
     }
   }
 
@@ -56,7 +56,7 @@ export function getTodayChecklist(date: string, template: ChecklistItem[]): Dail
   return {
     date,
     items: template.map((t) => ({ ...t, completed: false })),
-    profile: getActiveProfileId(),
+    profile: getSettings().id,
   }
 }
 

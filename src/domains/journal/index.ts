@@ -36,6 +36,6 @@ export function createEmptyEntry(date: string): JournalEntry {
   return {
     date,
     content: '',
-    profile: getActiveProfileId(),
+    profile: getSettings().id,
   }
 }
