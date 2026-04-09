@@ -13,6 +13,12 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
   calendar: 'カレンダー表示',
 }
 
+// 属性の選択肢
+const ATTRIBUTES = [
+  { value: 'work', label: '仕事', emoji: '💼' },
+  { value: 'personal', label: 'プライベート', emoji: '🏠' },
+]
+
 export default function Settings() {
   const router = useRouter()
   const [settings, setSettings] = useState<Profile | null>(null)
@@ -22,10 +28,16 @@ export default function Settings() {
     setSettings(getSettings())
   }, [])
 
+
   if (!settings) return null
 
   function updateField<K extends keyof Profile>(key: K, value: Profile[K]) {
     setSettings((prev) => prev ? { ...prev, [key]: value } : prev)
+    setSaved(false)
+  }
+
+  function updateAttribute(value: string) {
+    setSettings((prev) => prev ? { ...prev, attribute: value } : prev)
     setSaved(false)
   }
 
@@ -60,6 +72,23 @@ export default function Settings() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10">
+        {/* 属性選択 */}
+        <Section title="属性">
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">属性（仕事/プライベートなど）</label>
+            <select
+              className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+              value={settings.attribute || 'work'}
+              onChange={e => updateAttribute(e.target.value)}
+            >
+              {ATTRIBUTES.map(attr => (
+                <option key={attr.value} value={attr.value}>
+                  {attr.emoji} {attr.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Section>
         <div className="space-y-6">
           {/* GitHub 認証 */}
           <Section title="GitHub 認証">

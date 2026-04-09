@@ -36,6 +36,7 @@ export interface Profile {
   id: string
   label: string          // 表示名（例: "ポータル"）
   emoji: string          // アイコン（例: "🌀"）
+  attribute?: string     // 属性（例: "work", "personal"）
   gh_pat: string         // GitHub Personal Access Token
   github_repo: string    // データリポジトリ（例: "owner/repo"）
   github_branch: string  // ブランチ（例: "main"）
