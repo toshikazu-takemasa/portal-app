@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getBacklogIssues } from '@/domains/ai'
-import { isFeatureEnabled } from '@/profiles'
+import { isFeatureEnabled, getSettings } from '@/profiles'
 import type { BacklogIssue } from '@/domains/ai'
 
 const STATUS_COLOR: Record<string, string> = {
@@ -24,7 +24,7 @@ export default function BacklogPage() {
       return
     }
 
-    const profile = getActiveProfile()
+    const profile = getSettings()
     const spaceId = profile.backlog_space_id
     const apiKey = profile.backlog_api_key
 
