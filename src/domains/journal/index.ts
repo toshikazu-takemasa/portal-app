@@ -5,7 +5,7 @@
 // StorageAdapter 経由のみ — 直接 fetch 禁止
 // ============================================================
 
-import { createStorageAdapter, getActiveProfileId } from '@/profiles'
+import { createStorageAdapter } from '@/profiles'
 import type { JournalEntry } from '@/shared/types'
 
 /** 今日の日付文字列 (YYYY-MM-DD) */
@@ -36,6 +36,5 @@ export function createEmptyEntry(date: string): JournalEntry {
   return {
     date,
     content: '',
-    profile: getSettings().id,
   }
 }

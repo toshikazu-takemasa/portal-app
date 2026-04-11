@@ -35,7 +35,6 @@ export default function DiaryPage() {
 
   // AI機能が使えるか確認
   useEffect(() => {
-    const profile = getSettings()
     setAiAvailable(isFeatureEnabled('ai_summary'))
   }, [])
 
@@ -86,7 +85,6 @@ export default function DiaryPage() {
       const entry: JournalEntry = {
         date,
         content,
-        profile: getActiveProfileId(),
         sha,
       }
       await saveJournalEntry(entry)

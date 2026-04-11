@@ -5,7 +5,7 @@
 // 日次の完了状態は localStorage に保存する
 // ============================================================
 
-import { createStorageAdapter, getActiveProfileId } from '@/profiles'
+import { createStorageAdapter } from '@/profiles'
 import type { ChecklistItem, DailyChecklist } from '@/shared/types'
 
 const CHECKLIST_PREFIX = 'daily_checklist_'
@@ -30,7 +30,6 @@ export function getTodayChecklist(date: string, template: ChecklistItem[]): Dail
     return {
       date,
       items: template.map((t) => ({ ...t, completed: false })),
-      profile: getSettings().id,
     }
   }
 
@@ -56,7 +55,6 @@ export function getTodayChecklist(date: string, template: ChecklistItem[]): Dail
   return {
     date,
     items: template.map((t) => ({ ...t, completed: false })),
-    profile: getSettings().id,
   }
 }
 
