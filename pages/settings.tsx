@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSettings, saveSettings } from '@/profiles/index'
-import type { Profile, FeatureFlags, AiPersona } from '@/shared/types'
+import type { Profile, FeatureFlags, AiPersona, AiProviderId } from '@/shared/types'
 
 const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
   backlog: 'Backlog連携',
@@ -17,6 +17,11 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
 const ATTRIBUTES = [
   { value: 'work', label: '仕事', emoji: '💼' },
   { value: 'personal', label: 'プライベート', emoji: '🏠' },
+]
+
+const AI_PROVIDERS: Array<{ id: AiProviderId; label: string; defaultModel: string }> = [
+  { id: 'anthropic', label: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001' },
+  { id: 'gemini', label: 'Gemini', defaultModel: 'gemini-2.5-flash' },
 ]
 
 export default function Settings() {
@@ -48,6 +53,29 @@ export default function Settings() {
 
   function updateAiPersona(key: keyof AiPersona, value: string) {
     setSettings((prev) => prev ? { ...prev, ai_persona: { ...prev.ai_persona, [key]: value } } : prev)
+    setSaved(false)
+  }
+
+  function updateAiProvider(value: string) {
+    setSettings((prev) => {
+      if (!prev) return prev
+      const previousProviderId = prev.ai_persona.providerId || 'anthropic'
+      const previousDefaultModel =
+        AI_PROVIDERS.find((p) => p.id === previousProviderId)?.defaultModel || ''
+      const selected = AI_PROVIDERS.find((p) => p.id === value)
+      const nextModel =
+        !prev.ai_persona.model || prev.ai_persona.model === previousDefaultModel
+          ? selected?.defaultModel || ''
+          : prev.ai_persona.model
+      return {
+        ...prev,
+        ai_persona: {
+          ...prev.ai_persona,
+          providerId: value,
+          model: nextModel,
+        },
+      }
+    })
     setSaved(false)
   }
 
@@ -133,6 +161,27 @@ export default function Settings() {
 
           {/* AI人格設定 */}
           <Section title="AI人格設定">
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1">AIプロバイダ</label>
+              <select
+                className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+                value={settings.ai_persona?.providerId ?? 'anthropic'}
+                onChange={e => updateAiProvider(e.target.value)}
+              >
+                {AI_PROVIDERS.map(provider => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Field
+              label="モデル"
+              hint="例: claude-haiku-4-5-20251001 / gemini-2.5-flash"
+              value={settings.ai_persona?.model ?? ''}
+              onChange={(v) => updateAiPersona('model', v)}
+              placeholder="providerに対応したモデルID"
+            />
             <Field
               label="AI名"
               value={settings.ai_persona?.name ?? 'パートナー'}
@@ -165,12 +214,12 @@ export default function Settings() {
               />
             </div>
             <Field
-              label="Anthropic API キー"
-              hint="AIサマリー機能に使用"
+              label="AI API キー"
+              hint="選択したプロバイダのキーを入力"
               type="password"
               value={settings.ai_persona?.apiKey ?? ''}
               onChange={(v) => updateAiPersona('apiKey', v)}
-              placeholder="sk-ant-xxxxxxxxxxxx"
+              placeholder="プロバイダのAPIキー"
             />
           </Section>
 

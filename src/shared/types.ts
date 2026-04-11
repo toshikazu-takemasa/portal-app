@@ -16,6 +16,8 @@ export interface FeatureFlags {
   calendar: boolean      // カレンダー表示
 }
 
+export type AiProviderId = 'anthropic' | 'gemini' | (string & {})
+
 // ------------------------------------------------------------
 // Profile（単一プロファイル＋機能ON/OFF）
 // ------------------------------------------------------------
@@ -29,7 +31,9 @@ export interface AiPersona {
   systemPrompt: string   // システムプロンプト（AIの性格・口調）
   avatarUrl: string      // アバター画像URL or パス（空文字でデフォルト）
   userCallName: string   // ユーザーの呼び方（例: "あんた"）
-  apiKey: string         // Anthropic API キー（AIサマリー用）
+  providerId: AiProviderId // 利用するAIプロバイダ（将来拡張を想定）
+  model: string          // モデルID（プロバイダごとに解釈）
+  apiKey: string         // AIプロバイダのAPIキー
 }
 
 export interface Profile {

@@ -23,6 +23,8 @@ export async function summarizeJournal(content: string): Promise<string> {
       systemPrompt: persona.systemPrompt,
       aiName: persona.name,
       userCallName: persona.userCallName,
+      providerId: persona.providerId,
+      model: persona.model,
       apiKey: persona.apiKey,
     }),
   })

@@ -30,6 +30,8 @@ export default function ChatPage() {
           systemPrompt: settings.ai_persona.systemPrompt,
           aiName: settings.ai_persona.name,
           userCallName: settings.ai_persona.userCallName,
+          providerId: settings.ai_persona.providerId,
+          model: settings.ai_persona.model,
           apiKey: settings.ai_persona.apiKey,
         }),
       })

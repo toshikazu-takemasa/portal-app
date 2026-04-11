@@ -28,6 +28,8 @@ const DEFAULT_AI_PERSONA: AiPersona = {
   systemPrompt: 'あなたは気さくで頼りになるAIアシスタントです。',
   avatarUrl: '',
   userCallName: 'あんた',
+  providerId: 'anthropic',
+  model: 'claude-haiku-4-5-20251001',
   apiKey: '',
 }
 
@@ -66,7 +68,13 @@ export function getSettings(): Profile {
   const raw = localStorage.getItem(SETTINGS_KEY)
   if (!raw) return { ...DEFAULT_SETTINGS }
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw) as Partial<Profile>
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      features: { ...DEFAULT_FEATURES, ...(parsed.features ?? {}) },
+      ai_persona: { ...DEFAULT_AI_PERSONA, ...(parsed.ai_persona ?? {}) },
+    }
   } catch {
     return { ...DEFAULT_SETTINGS }
   }
