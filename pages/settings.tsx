@@ -11,6 +11,7 @@ const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
   ai_summary: 'AIサマリー',
   voice_input: '音声入力（将来）',
   calendar: 'カレンダー表示',
+  quick_links: 'クイックリンク表示',
 }
 
 // 属性の選択肢

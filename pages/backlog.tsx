@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getBacklogIssues } from '@/domains/ai'
-import { isFeatureEnabled, getSettings } from '@/profiles'
-import type { BacklogIssue } from '@/domains/ai'
+import { getBacklogIssues, getBacklogCredentials } from '@/domains/task/integrations/backlog'
+import { isFeatureEnabled } from '@/profiles'
+import type { BacklogIssue } from '@/domains/task/integrations/backlog'
 
 const STATUS_COLOR: Record<string, string> = {
   未対応: 'bg-zinc-700 text-zinc-300',
@@ -24,18 +24,15 @@ export default function BacklogPage() {
       return
     }
 
-    const profile = getSettings()
-    const spaceId = profile.backlog_space_id
-    const apiKey = profile.backlog_api_key
-
-    if (!spaceId || !apiKey) {
+    const creds = getBacklogCredentials()
+    if (!creds) {
       setConfigured(false)
       setLoading(false)
       return
     }
 
     setConfigured(true)
-    getBacklogIssues(spaceId, apiKey)
+    getBacklogIssues(creds.spaceId, creds.apiKey)
       .then(setIssues)
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))

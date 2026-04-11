@@ -4,6 +4,59 @@
 // ============================================================
 
 // ------------------------------------------------------------
+// App Catalog（ADR-007）
+// 機能フラグに代わるアプリ追加・削除モデル
+// ------------------------------------------------------------
+export type AppCapability =
+  | 'task'
+  | 'journal'
+  | 'finance'
+  | 'chat'
+  | 'calendar'
+  | 'external-integration'
+
+export interface AppManifest {
+  id: string
+  label: string
+  icon: string
+  category: 'personal' | 'work' | 'core'
+  capabilities: AppCapability[]
+  defaultEnabled: boolean
+  requiredSettings: string[]
+}
+
+export interface InstalledApp {
+  appId: string
+  enabled: boolean
+  settings: Record<string, string>
+  installedAt: string
+}
+
+// ------------------------------------------------------------
+// Unified Task（ADR-008）
+// チェックリスト / Backlog / Google Calendar / GitHub Issues を統合
+// ------------------------------------------------------------
+export type UnifiedTaskSource = 'daily' | 'backlog' | 'calendar' | 'github'
+export type UnifiedTaskStatus = 'open' | 'in_progress' | 'completed' | 'resolved'
+export type UnifiedTaskPriority = 'low' | 'medium' | 'high'
+
+export interface UnifiedTask {
+  id: string
+  source: UnifiedTaskSource
+  title: string
+  status: UnifiedTaskStatus
+  dueDate?: string
+  priority?: UnifiedTaskPriority
+  externalRef?: { key: string; url?: string }
+  labels?: string[]
+}
+
+export interface TaskQuery {
+  date?: string                      // YYYY-MM-DD（省略時は today）
+  sources?: UnifiedTaskSource[]
+}
+
+// ------------------------------------------------------------
 // Feature Flags
 // プロファイル別機能ON/OFF制御
 // ------------------------------------------------------------
@@ -14,6 +67,7 @@ export interface FeatureFlags {
   ai_summary: boolean    // AIサマリー
   voice_input: boolean   // 音声入力（将来）
   calendar: boolean      // カレンダー表示
+  quick_links: boolean   // クイックリンク表示
 }
 
 export type AiProviderId = 'anthropic' | 'gemini' | (string & {})
@@ -52,6 +106,7 @@ export interface Profile {
   ai_persona: AiPersona
   backlog_space_id?: string  // Backlog スペース ID（例: "myspace.backlog.com"）
   backlog_api_key?: string   // Backlog API キー
+  installedApps?: InstalledApp[]  // App Catalog モデル（ADR-007）
 }
 
 // ------------------------------------------------------------

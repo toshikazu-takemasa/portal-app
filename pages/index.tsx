@@ -33,6 +33,9 @@ export default function Home() {
   if (!profile) return null
 
   const persona = profile.ai_persona
+  const diaryDescription = isFeatureEnabled('ai_summary')
+    ? '今日の記録を書く（保存後にAI振り返り）'
+    : '今日の記録を書く'
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -125,7 +128,7 @@ export default function Home() {
           <FeatureCard
             icon="📓"
             title="日記"
-            description="今日の記録を書く"
+            description={diaryDescription}
             onClick={() => router.push('/diary')}
           />
           <FeatureCard
@@ -140,14 +143,6 @@ export default function Home() {
               title="カレンダー"
               description="記録の日を一覧で確認"
               onClick={() => router.push('/calendar')}
-            />
-          )}
-          {isFeatureEnabled('ai_summary') && (
-            <FeatureCard
-              icon="🤖"
-              title="AIフィードバック"
-              description="日記を書いて AI に聞く"
-              onClick={() => router.push('/diary')}
             />
           )}
           {isFeatureEnabled('backlog') && (
@@ -169,7 +164,7 @@ export default function Home() {
         </div>
 
         {/* クイックリンク */}
-        {quickLinks.length > 0 && (
+        {isFeatureEnabled('quick_links') && quickLinks.length > 0 && (
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-4">
               クイックリンク
