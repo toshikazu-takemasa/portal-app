@@ -4,7 +4,7 @@
 // データは vault/finance/YYYY-MM.json に保存する
 // ============================================================
 
-import { createStorageAdapter, getActiveProfile } from '@/profiles'
+import { createStorageAdapter, getSettings } from '@/profiles'
 import type { FinanceRecord } from '@/shared/types'
 
 function getFinancePath(yearMonth: string): string {

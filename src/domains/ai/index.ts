@@ -4,7 +4,7 @@
 // /api/summarize を経由して Anthropic Claude を呼ぶ
 // ============================================================
 
-import { getActiveProfile } from '@/profiles'
+import { getSettings } from '@/profiles'
 
 /** 日記内容を AI にサマリーさせる */
 export async function summarizeJournal(content: string): Promise<string> {

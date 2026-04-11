@@ -63,7 +63,6 @@ export class GitHubStorageAdapter implements StorageAdapter {
       date,
       content: result.content,
       sha: result.sha,
-      profile: 'work', // caller が上書きする想定
     }
   }
 
