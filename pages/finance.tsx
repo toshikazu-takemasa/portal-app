@@ -123,34 +123,17 @@ export default function FinancePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950 px-4 py-3 flex items-center gap-4">
         <button
           onClick={() => router.push('/')}
           className="text-zinc-400 hover:text-zinc-100 transition-colors text-sm"
         >
           ← 戻る
         </button>
-        <h1 className="text-lg font-semibold tracking-tight">家計管理</h1>
-        <div className="flex-1" />
-        {/* 反映ボタン */}
-        <div className="flex items-center gap-3">
-          {reflected && (
-            <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>
-          )}
-          {error && (
-            <span className="text-xs text-red-400 max-w-48 truncate">{error}</span>
-          )}
-          <button
-            onClick={handleReflect}
-            disabled={reflecting || loading}
-            className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-1.5 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
-          >
-            {reflecting ? '反映中...' : '日記に反映'}
-          </button>
-        </div>
+        <h1 className="text-base font-semibold tracking-tight">家計管理</h1>
       </header>
 
-      <main className="max-w-lg mx-auto px-6 py-10 space-y-6">
+      <main className="max-w-lg mx-auto px-4 py-6 pb-28 space-y-6">
         {/* 月ナビゲーション */}
         <div className="flex items-center gap-4">
           <button
@@ -304,6 +287,20 @@ export default function FinancePage() {
           </div>
         )}
       </main>
+
+      {/* Footer — 固定 */}
+      <footer className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-800 bg-zinc-950 px-4 py-3 flex items-center gap-3">
+        {reflected && <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>}
+        {error && <p className="text-xs text-red-400 truncate max-w-48">{error}</p>}
+        <div className="flex-1" />
+        <button
+          onClick={handleReflect}
+          disabled={reflecting || loading}
+          className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-2 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
+        >
+          {reflecting ? '反映中...' : '日記に反映'}
+        </button>
+      </footer>
     </div>
   )
 }

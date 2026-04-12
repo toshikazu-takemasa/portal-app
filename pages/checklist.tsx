@@ -57,7 +57,6 @@ export default function ChecklistPage() {
     saveTodayChecklist(updated)
   }
 
-  /** UC-09: 完了済みのみ日記に反映する */
   async function handleReflect() {
     if (!checklist) return
     const completedItems = checklist.items.filter((i) => i.completed)
@@ -82,7 +81,6 @@ export default function ChecklistPage() {
     }
   }
 
-  /** 完了チェックをすべて外す */
   function handleUncheck() {
     if (!checklist) return
     const reset: DailyChecklist = {
@@ -100,18 +98,19 @@ export default function ChecklistPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-4">
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950 px-4 py-3 flex items-center gap-4">
         <button
           onClick={() => router.push('/')}
           className="text-zinc-400 hover:text-zinc-100 transition-colors text-sm"
         >
           ← 戻る
         </button>
-        <h1 className="text-lg font-semibold tracking-tight">チェックリスト</h1>
-        <span className="text-xs text-zinc-500 ml-auto">{today}</span>
+        <h1 className="text-base font-semibold tracking-tight">チェックリスト</h1>
+        <span className="ml-auto text-xs text-zinc-500">{today}</span>
       </header>
 
-      <main className="max-w-lg mx-auto px-6 py-10">
+      <main className="max-w-lg mx-auto px-4 py-6 pb-28 space-y-6">
         {loading ? (
           <p className="text-zinc-500 text-sm">読み込み中...</p>
         ) : error ? (
@@ -119,7 +118,7 @@ export default function ChecklistPage() {
             <p className="text-sm text-red-400">{error}</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <>
             {/* 進捗 */}
             {totalCount > 0 && (
               <div>
@@ -127,15 +126,11 @@ export default function ChecklistPage() {
                   <p className="text-sm text-zinc-400">
                     {allDone ? '🎉 今日も完了！' : '本日の進捗'}
                   </p>
-                  <p className="text-sm font-semibold">
-                    {completedCount} / {totalCount}
-                  </p>
+                  <p className="text-sm font-semibold">{completedCount} / {totalCount}</p>
                 </div>
                 <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      allDone ? 'bg-emerald-400' : 'bg-emerald-600'
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-emerald-600'}`}
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
@@ -164,21 +159,11 @@ export default function ChecklistPage() {
                       >
                         {item.completed && (
                           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                            <path
-                              d="M1.5 5l2.5 2.5 4.5-5"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                            <path d="M1.5 5l2.5 2.5 4.5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         )}
                       </span>
-                      <span
-                        className={`text-sm transition-colors ${
-                          item.completed ? 'line-through text-zinc-600' : 'text-zinc-200'
-                        }`}
-                      >
+                      <span className={`text-sm transition-colors ${item.completed ? 'line-through text-zinc-600' : 'text-zinc-200'}`}>
                         {item.title}
                       </span>
                     </li>
@@ -196,9 +181,7 @@ export default function ChecklistPage() {
                 <ul className="space-y-2">
                   {pillars.map((p, i) => (
                     <li key={p.id} className="flex items-start gap-3">
-                      <span className="text-xs font-bold text-zinc-500 mt-0.5 w-4 shrink-0">
-                        {i + 1}
-                      </span>
+                      <span className="text-xs font-bold text-zinc-500 mt-0.5 w-4 shrink-0">{i + 1}</span>
                       <span className="text-sm text-zinc-300">{p.title}</span>
                     </li>
                   ))}
@@ -214,33 +197,32 @@ export default function ChecklistPage() {
                 </p>
               </div>
             )}
-
-            {/* アクションボタン */}
-            {totalCount > 0 && (
-              <div className="flex items-center gap-3 pt-2">
-                {reflected && (
-                  <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>
-                )}
-                <div className="flex-1" />
-                <button
-                  onClick={handleUncheck}
-                  disabled={completedCount === 0}
-                  className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
-                >
-                  チェックを外す
-                </button>
-                <button
-                  onClick={handleReflect}
-                  disabled={reflecting || completedCount === 0}
-                  className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-1.5 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
-                >
-                  {reflecting ? '反映中...' : '日記に反映'}
-                </button>
-              </div>
-            )}
-          </div>
+          </>
         )}
       </main>
+
+      {/* Footer — 固定 */}
+      {!loading && totalCount > 0 && (
+        <footer className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-800 bg-zinc-950 px-4 py-3 flex items-center gap-3">
+          {reflected && <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>}
+          {error && <p className="text-xs text-red-400 truncate max-w-48">{error}</p>}
+          <div className="flex-1" />
+          <button
+            onClick={handleUncheck}
+            disabled={completedCount === 0}
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
+          >
+            チェックを外す
+          </button>
+          <button
+            onClick={handleReflect}
+            disabled={reflecting || completedCount === 0}
+            className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-2 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
+          >
+            {reflecting ? '反映中...' : '日記に反映'}
+          </button>
+        </footer>
+      )}
     </div>
   )
 }

@@ -119,46 +119,21 @@ export default function BacklogPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-4">
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => router.push('/')}
           className="text-zinc-400 hover:text-zinc-100 transition-colors text-sm"
         >
           ← 戻る
         </button>
-        <h1 className="text-lg font-semibold tracking-tight">Backlog</h1>
+        <h1 className="text-base font-semibold tracking-tight">Backlog</h1>
         {tasks.length > 0 && (
           <span className="text-xs text-zinc-500">{tasks.length} 件</span>
         )}
-        <div className="flex-1" />
-        {/* アクションボタン */}
-        {configured && !loading && tasks.length > 0 && (
-          <div className="flex items-center gap-3">
-            {reflected && (
-              <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>
-            )}
-            {error && (
-              <span className="text-xs text-red-400 max-w-48 truncate">{error}</span>
-            )}
-            <button
-              onClick={handleUncheck}
-              disabled={checkedCount === 0}
-              className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
-            >
-              チェックを外す
-            </button>
-            <button
-              onClick={handleReflect}
-              disabled={reflecting || checkedCount === 0}
-              className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-1.5 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
-            >
-              {reflecting ? '反映中...' : `日記に反映${checkedCount > 0 ? `（${checkedCount}）` : ''}`}
-            </button>
-          </div>
-        )}
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-28">
         {!configured ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
             <p className="text-sm text-amber-400 font-medium">Backlog が未設定です</p>
@@ -185,10 +160,9 @@ export default function BacklogPage() {
                 <li
                   key={task.id}
                   onClick={() => toggleCheck(task.id)}
-                  className="px-5 py-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                  className="px-4 py-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
                 >
                   <div className="flex items-start gap-3">
-                    {/* ローカルチェックボックス */}
                     <span
                       className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-all ${
                         checkedIds.has(task.id)
@@ -198,25 +172,13 @@ export default function BacklogPage() {
                     >
                       {checkedIds.has(task.id) && (
                         <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path
-                            d="M1.5 5l2.5 2.5 4.5-5"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                          <path d="M1.5 5l2.5 2.5 4.5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
                     </span>
-
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
-                        STATUS_COLOR[task.status]
-                      }`}
-                    >
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${STATUS_COLOR[task.status]}`}>
                       {STATUS_LABEL[task.status]}
                     </span>
-
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-zinc-200 leading-snug">{task.title}</p>
                       <div className="flex items-center gap-3 mt-1.5">
@@ -234,11 +196,7 @@ export default function BacklogPage() {
                           <span className="text-xs text-zinc-500">{task.externalRef?.key}</span>
                         )}
                         {task.dueDate && (
-                          <span
-                            className={`text-xs ${
-                              task.dueDate < today ? 'text-red-400' : 'text-zinc-500'
-                            }`}
-                          >
+                          <span className={`text-xs ${task.dueDate < today ? 'text-red-400' : 'text-zinc-500'}`}>
                             期限: {task.dueDate}
                           </span>
                         )}
@@ -256,6 +214,29 @@ export default function BacklogPage() {
           </div>
         )}
       </main>
+
+      {/* Footer — 固定 */}
+      {configured && !loading && tasks.length > 0 && (
+        <footer className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-800 bg-zinc-950 px-4 py-3 flex items-center gap-3">
+          {reflected && <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>}
+          {error && <p className="text-xs text-red-400 truncate max-w-48">{error}</p>}
+          <div className="flex-1" />
+          <button
+            onClick={handleUncheck}
+            disabled={checkedCount === 0}
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
+          >
+            チェックを外す
+          </button>
+          <button
+            onClick={handleReflect}
+            disabled={reflecting || checkedCount === 0}
+            className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-2 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
+          >
+            {reflecting ? '反映中...' : `日記に反映${checkedCount > 0 ? `（${checkedCount}）` : ''}`}
+          </button>
+        </footer>
+      )}
     </div>
   )
 }
