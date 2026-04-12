@@ -30,7 +30,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 }
 
 function getTodayDateString() {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
 function getBacklogCredentials(): { spaceId: string; apiKey: string } | null {

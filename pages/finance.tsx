@@ -22,7 +22,7 @@ export default function FinancePage() {
   const [reflected, setReflected] = useState(false)
 
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }),
     type: 'expense' as FinanceType,
     category: '',
     amount: '',
@@ -90,7 +90,7 @@ export default function FinancePage() {
 
   /** UC-10: 当日の家計記録を日記に反映する（リセットなし） */
   async function handleReflect() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
     const todayRecords = records.filter((r) => r.date === today)
     setReflecting(true)
     setError('')

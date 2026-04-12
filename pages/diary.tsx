@@ -62,13 +62,13 @@ export default function DiaryPage() {
   function prevDate() {
     const d = new Date(date)
     d.setDate(d.getDate() - 1)
-    setDate(d.toISOString().split('T')[0])
+    setDate(d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }))
   }
 
   function nextDate() {
     const d = new Date(date)
     d.setDate(d.getDate() + 1)
-    const next = d.toISOString().split('T')[0]
+    const next = d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
     if (next <= todayStr) setDate(next)
   }
 

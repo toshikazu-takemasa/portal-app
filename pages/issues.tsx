@@ -21,7 +21,7 @@ function labelClass(name: string): string {
 }
 
 function getTodayDateString() {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
 function getGithubCredentials(): { pat: string; repo: string } | null {

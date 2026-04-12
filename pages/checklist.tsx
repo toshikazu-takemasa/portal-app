@@ -13,7 +13,7 @@ import {
 import type { DailyChecklist, ChecklistItem, UnifiedTask } from '@/shared/types'
 
 function getTodayDateString() {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
 export default function ChecklistPage() {

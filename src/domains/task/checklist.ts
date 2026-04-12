@@ -66,7 +66,7 @@ export function saveTodayChecklist(checklist: DailyChecklist): void {
 
 /** 今日のデイリータスクを UnifiedTask[] として返す（ADR-008: Orchestrator 向け） */
 export async function getDailyTasksAsUnified(): Promise<UnifiedTask[]> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
   const template = await getDailyTaskTemplate()
   const checklist = getTodayChecklist(today, template)
   return checklist.items.map((item) => ({
