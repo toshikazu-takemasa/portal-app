@@ -105,7 +105,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
   async listJournalDates(limit = 30): Promise<string[]> {
     const res = await fetch(
       `${GITHUB_API}/repos/${this.repo}/contents/${this.diaryPath}?ref=${this.branch}`,
-      { headers: this.headers }
+      { headers: this.headers, cache: 'no-store' }
     )
     if (!res.ok) return []
     const files = (await res.json()) as Array<{ name: string }>
@@ -153,7 +153,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
   async getFile(path: string): Promise<{ content: string; sha: string } | null> {
     const res = await fetch(
       `${GITHUB_API}/repos/${this.repo}/contents/${path}?ref=${this.branch}`,
-      { headers: this.headers }
+      { headers: this.headers, cache: 'no-store' }
     )
     if (!res.ok) return null
     const data = (await res.json()) as GitHubFileResponse
