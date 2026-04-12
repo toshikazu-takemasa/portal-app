@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { isAppEnabled, getSettings } from '@/profiles'
+import { appendToJournal, buildTaskReflectionMarkdown } from '@/domains/journal'
 import type { UnifiedTask } from '@/shared/types'
 
 const STATUS_LABEL: Record<UnifiedTask['status'], string> = {
@@ -28,6 +29,10 @@ const PRIORITY_LABEL: Record<string, string> = {
   low: '低',
 }
 
+function getTodayDateString() {
+  return new Date().toISOString().split('T')[0]
+}
+
 function getBacklogCredentials(): { spaceId: string; apiKey: string } | null {
   const profile = getSettings()
   const appSettings = profile.installedApps?.find((a) => a.appId === 'backlog')?.settings
@@ -39,10 +44,15 @@ function getBacklogCredentials(): { spaceId: string; apiKey: string } | null {
 
 export default function BacklogPage() {
   const router = useRouter()
+  const today = getTodayDateString()
+
   const [tasks, setTasks] = useState<UnifiedTask[]>([])
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
+  const [reflecting, setReflecting] = useState(false)
+  const [reflected, setReflected] = useState(false)
 
   useEffect(() => {
     if (!isAppEnabled('backlog')) {
@@ -76,6 +86,37 @@ export default function BacklogPage() {
       .finally(() => setLoading(false))
   }, [router])
 
+  function toggleCheck(id: string) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function handleUncheck() {
+    setCheckedIds(new Set())
+  }
+
+  async function handleReflect() {
+    const selected = tasks.filter((t) => checkedIds.has(t.id))
+    if (selected.length === 0) return
+    setReflecting(true)
+    setError('')
+    try {
+      const snippet = buildTaskReflectionMarkdown(today, selected)
+      await appendToJournal(today, snippet)
+      setReflected(true)
+      setTimeout(() => setReflected(false), 2500)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setReflecting(false)
+    }
+  }
+
+  const checkedCount = checkedIds.size
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-4">
@@ -87,7 +128,33 @@ export default function BacklogPage() {
         </button>
         <h1 className="text-lg font-semibold tracking-tight">Backlog</h1>
         {tasks.length > 0 && (
-          <span className="ml-auto text-xs text-zinc-500">{tasks.length} 件</span>
+          <span className="text-xs text-zinc-500">{tasks.length} 件</span>
+        )}
+        <div className="flex-1" />
+        {/* アクションボタン */}
+        {configured && !loading && tasks.length > 0 && (
+          <div className="flex items-center gap-3">
+            {reflected && (
+              <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>
+            )}
+            {error && (
+              <span className="text-xs text-red-400 max-w-48 truncate">{error}</span>
+            )}
+            <button
+              onClick={handleUncheck}
+              disabled={checkedCount === 0}
+              className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
+            >
+              チェックを外す
+            </button>
+            <button
+              onClick={handleReflect}
+              disabled={reflecting || checkedCount === 0}
+              className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-1.5 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
+            >
+              {reflecting ? '反映中...' : `日記に反映${checkedCount > 0 ? `（${checkedCount}）` : ''}`}
+            </button>
+          </div>
         )}
       </header>
 
@@ -107,10 +174,6 @@ export default function BacklogPage() {
           </div>
         ) : loading ? (
           <p className="text-zinc-500 text-sm">読み込み中...</p>
-        ) : error ? (
-          <div className="rounded-xl border border-red-900/50 bg-red-950/30 p-4">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
         ) : tasks.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-zinc-500 text-sm">担当課題はありません</p>
@@ -119,8 +182,33 @@ export default function BacklogPage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
             <ul className="divide-y divide-zinc-800">
               {tasks.map((task) => (
-                <li key={task.id} className="px-5 py-4">
+                <li
+                  key={task.id}
+                  onClick={() => toggleCheck(task.id)}
+                  className="px-5 py-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                >
                   <div className="flex items-start gap-3">
+                    {/* ローカルチェックボックス */}
+                    <span
+                      className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-all ${
+                        checkedIds.has(task.id)
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : 'border-zinc-600'
+                      }`}
+                    >
+                      {checkedIds.has(task.id) && (
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path
+                            d="M1.5 5l2.5 2.5 4.5-5"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </span>
+
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
                         STATUS_COLOR[task.status]
@@ -128,6 +216,7 @@ export default function BacklogPage() {
                     >
                       {STATUS_LABEL[task.status]}
                     </span>
+
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-zinc-200 leading-snug">{task.title}</p>
                       <div className="flex items-center gap-3 mt-1.5">
@@ -136,6 +225,7 @@ export default function BacklogPage() {
                             href={task.externalRef.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-xs text-zinc-500 hover:text-zinc-300 hover:underline"
                           >
                             {task.externalRef.key}
@@ -146,9 +236,7 @@ export default function BacklogPage() {
                         {task.dueDate && (
                           <span
                             className={`text-xs ${
-                              task.dueDate < new Date().toISOString().split('T')[0]
-                                ? 'text-red-400'
-                                : 'text-zinc-500'
+                              task.dueDate < today ? 'text-red-400' : 'text-zinc-500'
                             }`}
                           >
                             期限: {task.dueDate}

@@ -7,6 +7,7 @@ import {
   getCurrentYearMonth,
   generateId,
 } from '@/domains/finance'
+import { appendToJournal, buildFinanceReflectionMarkdown } from '@/domains/journal'
 import { isAppEnabled } from '@/profiles'
 import type { FinanceRecord, FinanceType } from '@/shared/types'
 
@@ -17,6 +18,8 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [reflecting, setReflecting] = useState(false)
+  const [reflected, setReflected] = useState(false)
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -85,6 +88,24 @@ export default function FinancePage() {
     }
   }
 
+  /** UC-10: 当日の家計記録を日記に反映する（リセットなし） */
+  async function handleReflect() {
+    const today = new Date().toISOString().split('T')[0]
+    const todayRecords = records.filter((r) => r.date === today)
+    setReflecting(true)
+    setError('')
+    try {
+      const snippet = buildFinanceReflectionMarkdown(yearMonth, todayRecords)
+      await appendToJournal(today, snippet)
+      setReflected(true)
+      setTimeout(() => setReflected(false), 2500)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setReflecting(false)
+    }
+  }
+
   function shiftMonth(delta: number) {
     const [y, m] = yearMonth.split('-').map(Number)
     const d = new Date(y, m - 1 + delta, 1)
@@ -110,6 +131,23 @@ export default function FinancePage() {
           ← 戻る
         </button>
         <h1 className="text-lg font-semibold tracking-tight">家計管理</h1>
+        <div className="flex-1" />
+        {/* 反映ボタン */}
+        <div className="flex items-center gap-3">
+          {reflected && (
+            <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>
+          )}
+          {error && (
+            <span className="text-xs text-red-400 max-w-48 truncate">{error}</span>
+          )}
+          <button
+            onClick={handleReflect}
+            disabled={reflecting || loading}
+            className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-1.5 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
+          >
+            {reflecting ? '反映中...' : '日記に反映'}
+          </button>
+        </div>
       </header>
 
       <main className="max-w-lg mx-auto px-6 py-10 space-y-6">

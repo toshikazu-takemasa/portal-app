@@ -6,7 +6,11 @@ import {
   getTodayChecklist,
   saveTodayChecklist,
 } from '@/domains/task'
-import type { DailyChecklist, ChecklistItem } from '@/shared/types'
+import {
+  appendToJournal,
+  buildTaskReflectionMarkdown,
+} from '@/domains/journal'
+import type { DailyChecklist, ChecklistItem, UnifiedTask } from '@/shared/types'
 
 function getTodayDateString() {
   return new Date().toISOString().split('T')[0]
@@ -20,6 +24,8 @@ export default function ChecklistPage() {
   const [pillars, setPillars] = useState<ChecklistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reflecting, setReflecting] = useState(false)
+  const [reflected, setReflected] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -51,6 +57,42 @@ export default function ChecklistPage() {
     saveTodayChecklist(updated)
   }
 
+  /** UC-09: 完了済みのみ日記に反映する */
+  async function handleReflect() {
+    if (!checklist) return
+    const completedItems = checklist.items.filter((i) => i.completed)
+    if (completedItems.length === 0) return
+    setReflecting(true)
+    setError('')
+    try {
+      const tasks: UnifiedTask[] = completedItems.map((i) => ({
+        id: `daily-${i.id}`,
+        source: 'daily' as const,
+        title: i.title,
+        status: 'completed' as const,
+      }))
+      const snippet = buildTaskReflectionMarkdown(today, tasks)
+      await appendToJournal(today, snippet)
+      setReflected(true)
+      setTimeout(() => setReflected(false), 2500)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setReflecting(false)
+    }
+  }
+
+  /** 完了チェックをすべて外す */
+  function handleUncheck() {
+    if (!checklist) return
+    const reset: DailyChecklist = {
+      ...checklist,
+      items: checklist.items.map((i) => ({ ...i, completed: false })),
+    }
+    setChecklist(reset)
+    saveTodayChecklist(reset)
+  }
+
   const completedCount = checklist?.items.filter((i) => i.completed).length ?? 0
   const totalCount = checklist?.items.length ?? 0
   const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
@@ -66,7 +108,7 @@ export default function ChecklistPage() {
           ← 戻る
         </button>
         <h1 className="text-lg font-semibold tracking-tight">チェックリスト</h1>
-        <span className="ml-auto text-xs text-zinc-500">{today}</span>
+        <span className="text-xs text-zinc-500 ml-auto">{today}</span>
       </header>
 
       <main className="max-w-lg mx-auto px-6 py-10">
@@ -170,6 +212,30 @@ export default function ChecklistPage() {
                 <p className="text-zinc-600 text-xs mt-2">
                   データリポジトリの config.json に dailyTasks を追加してください
                 </p>
+              </div>
+            )}
+
+            {/* アクションボタン */}
+            {totalCount > 0 && (
+              <div className="flex items-center gap-3 pt-2">
+                {reflected && (
+                  <span className="text-xs text-emerald-400">✓ 日記に反映しました</span>
+                )}
+                <div className="flex-1" />
+                <button
+                  onClick={handleUncheck}
+                  disabled={completedCount === 0}
+                  className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
+                >
+                  チェックを外す
+                </button>
+                <button
+                  onClick={handleReflect}
+                  disabled={reflecting || completedCount === 0}
+                  className="rounded-full bg-zinc-800 text-zinc-100 px-4 py-1.5 text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-40"
+                >
+                  {reflecting ? '反映中...' : '日記に反映'}
+                </button>
               </div>
             )}
           </div>

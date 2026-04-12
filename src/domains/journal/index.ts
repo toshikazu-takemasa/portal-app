@@ -38,3 +38,17 @@ export function createEmptyEntry(date: string): JournalEntry {
     content: '',
   }
 }
+
+/**
+ * 日記エントリの末尾にスニペットを追記して保存する（ADR-012）
+ * 各アプリページの「日記に反映」ボタンから呼び出す共通関数
+ */
+export async function appendToJournal(date: string, snippet: string): Promise<void> {
+  const adapter = createStorageAdapter()
+  const existing = await adapter.getJournal(date)
+  const newContent = (existing?.content ?? '') + snippet
+  await adapter.saveJournal({ date, content: newContent, sha: existing?.sha })
+}
+
+// Reflection formatters（ADR-012）
+export { buildTaskReflectionMarkdown, buildFinanceReflectionMarkdown } from './reflection'
