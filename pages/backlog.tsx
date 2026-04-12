@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getBacklogIssues, getBacklogCredentials } from '@/domains/task/integrations/backlog'
-import { isFeatureEnabled } from '@/profiles'
+import { isAppEnabled } from '@/profiles'
 import type { BacklogIssue } from '@/domains/task/integrations/backlog'
 
 const STATUS_COLOR: Record<string, string> = {
@@ -19,7 +19,7 @@ export default function BacklogPage() {
   const [configured, setConfigured] = useState(false)
 
   useEffect(() => {
-    if (!isFeatureEnabled('backlog')) {
+    if (!isAppEnabled('backlog')) {
       router.replace('/')
       return
     }

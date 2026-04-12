@@ -56,20 +56,6 @@ export interface TaskQuery {
   sources?: UnifiedTaskSource[]
 }
 
-// ------------------------------------------------------------
-// Feature Flags
-// プロファイル別機能ON/OFF制御
-// ------------------------------------------------------------
-export interface FeatureFlags {
-  backlog: boolean       // Backlog連携（仕事のみ）
-  finance: boolean       // 家計管理（個人のみ）
-  ai_ticker: boolean     // AIティッカー表示
-  ai_summary: boolean    // AIサマリー
-  voice_input: boolean   // 音声入力（将来）
-  calendar: boolean      // カレンダー表示
-  quick_links: boolean   // クイックリンク表示
-}
-
 export type AiProviderId = 'anthropic' | 'gemini' | (string & {})
 
 // ------------------------------------------------------------
@@ -102,7 +88,6 @@ export interface Profile {
   diary_path: string     // 日記保存パス（例: "vault/diary"）
   report_path: string    // 日報保存パス（例: "vault/reports"）
   config_path: string    // portal-config.json のパス
-  features: FeatureFlags
   ai_persona: AiPersona
   backlog_space_id?: string  // Backlog スペース ID（例: "myspace.backlog.com"）
   backlog_api_key?: string   // Backlog API キー

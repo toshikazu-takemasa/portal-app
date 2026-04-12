@@ -7,7 +7,7 @@ import {
   getCurrentYearMonth,
   generateId,
 } from '@/domains/finance'
-import { isFeatureEnabled } from '@/profiles'
+import { isAppEnabled } from '@/profiles'
 import type { FinanceRecord, FinanceType } from '@/shared/types'
 
 export default function FinancePage() {
@@ -28,7 +28,7 @@ export default function FinancePage() {
 
   // finance 機能が無効なら TOP へ
   useEffect(() => {
-    if (!isFeatureEnabled('finance')) {
+    if (!isAppEnabled('finance')) {
       router.replace('/')
     }
   }, [router])
