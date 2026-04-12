@@ -36,12 +36,13 @@ const DEFAULT_AI_PERSONA: AiPersona = {
 
 /** コアアプリ（常にインストール済み・削除不可）のデフォルト InstalledApp リスト */
 const DEFAULT_INSTALLED_APPS: InstalledApp[] = [
-  { appId: 'journal',   enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'checklist', enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'chat',      enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'calendar',  enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'finance',   enabled: false, settings: {}, installedAt: '' },
-  { appId: 'backlog',   enabled: false, settings: {}, installedAt: '' },
+  { appId: 'journal',    enabled: true,  settings: {}, installedAt: '' },
+  { appId: 'checklist',  enabled: true,  settings: {}, installedAt: '' },
+  { appId: 'chat',       enabled: true,  settings: {}, installedAt: '' },
+  { appId: 'calendar',   enabled: true,  settings: {}, installedAt: '' },
+  { appId: 'quicklinks', enabled: true,  settings: {}, installedAt: '' },
+  { appId: 'finance',    enabled: false, settings: {}, installedAt: '' },
+  { appId: 'backlog',    enabled: false, settings: {}, installedAt: '' },
 ]
 
 const DEFAULT_SETTINGS: Profile = {
@@ -97,9 +98,10 @@ function migrateFeaturesToApps(
 // ここに載っているフラグは InstalledApps から状態を解決する
 // ------------------------------------------------------------
 const FEATURE_TO_APP_ID: Partial<Record<keyof FeatureFlags, string>> = {
-  backlog:  'backlog',
-  finance:  'finance',
-  calendar: 'calendar',
+  backlog:     'backlog',
+  finance:     'finance',
+  calendar:    'calendar',
+  quick_links: 'quicklinks',
 }
 
 // ------------------------------------------------------------
@@ -135,9 +137,30 @@ export function getSettings(): Profile {
               parsed
             ),
     }
+    // avatarUrl が未設定で vault が設定済みの場合は自動導出
+    if (!merged.ai_persona.avatarUrl && merged.github_repo) {
+      merged.ai_persona = {
+        ...merged.ai_persona,
+        avatarUrl: `https://raw.githubusercontent.com/${merged.github_repo}/${merged.github_branch}/vault/images/avatar.png`,
+      }
+    }
     return merged
   } catch {
     return { ...DEFAULT_SETTINGS }
+  }
+}
+
+/**
+ * vault の ai_persona で Profile のペルソナを上書きする（空値は無視）
+ * index.tsx の getPortalConfig 完了後に呼び出す
+ */
+export function mergeVaultPersona(settings: Profile, vaultPersona: Partial<AiPersona>): Profile {
+  const overrides = Object.fromEntries(
+    Object.entries(vaultPersona).filter(([, v]) => v !== '' && v !== undefined)
+  ) as Partial<AiPersona>
+  return {
+    ...settings,
+    ai_persona: { ...settings.ai_persona, ...overrides },
   }
 }
 

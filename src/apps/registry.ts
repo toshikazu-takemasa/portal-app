@@ -79,6 +79,15 @@ export const APP_REGISTRY: AppManifest[] = [
     defaultEnabled: false,
     requiredSettings: ['github_issues_repo'],
   },
+  {
+    id: 'quicklinks',
+    label: 'リンク集',
+    icon: '🔗',
+    category: 'core',
+    capabilities: [],
+    defaultEnabled: true,
+    requiredSettings: [],
+  },
 ]
 
 export function getAppManifest(appId: string): AppManifest | undefined {

@@ -1,15 +1,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getSettings, saveSettings } from '@/profiles/index'
+import { getSettings, saveSettings, createStorageAdapter } from '@/profiles/index'
 import { APP_REGISTRY } from '@/apps/registry'
 import type { Profile, AiPersona, AiProviderId, InstalledApp } from '@/shared/types'
-
-// 属性の選択肢
-const ATTRIBUTES = [
-  { value: 'work', label: '仕事', emoji: '💼' },
-  { value: 'personal', label: 'プライベート', emoji: '🏠' },
-]
 
 const AI_PROVIDERS: Array<{ id: AiProviderId; label: string; defaultModel: string }> = [
   { id: 'anthropic', label: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001' },
@@ -29,6 +23,7 @@ export default function Settings() {
   const router = useRouter()
   const [settings, setSettings] = useState<Profile | null>(null)
   const [saved, setSaved] = useState(false)
+  const [vaultSaving, setVaultSaving] = useState(false)
 
   useEffect(() => {
     setSettings(getSettings())
@@ -38,11 +33,6 @@ export default function Settings() {
 
   function updateField<K extends keyof Profile>(key: K, value: Profile[K]) {
     setSettings((prev) => prev ? { ...prev, [key]: value } : prev)
-    setSaved(false)
-  }
-
-  function updateAttribute(value: string) {
-    setSettings((prev) => prev ? { ...prev, attribute: value } : prev)
     setSaved(false)
   }
 
@@ -106,9 +96,32 @@ export default function Settings() {
     return { enabled: installed?.enabled ?? false, settings: installed?.settings ?? {} }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!settings) return
     saveSettings(settings)
+
+    // vault にも ai_persona を保存
+    if (settings.gh_pat && settings.github_repo) {
+      setVaultSaving(true)
+      try {
+        const adapter = createStorageAdapter()
+        const config = await adapter.getPortalConfig()
+        await adapter.savePortalConfig({
+          ...config,
+          ai_persona: {
+            name:         settings.ai_persona.name,
+            userCallName: settings.ai_persona.userCallName,
+            avatarUrl:    settings.ai_persona.avatarUrl,
+            systemPrompt: settings.ai_persona.systemPrompt,
+          },
+        })
+      } catch (e) {
+        console.warn('vault ai_persona 保存失敗:', e)
+      } finally {
+        setVaultSaving(false)
+      }
+    }
+
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -127,23 +140,6 @@ export default function Settings() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10">
-        {/* 属性選択 */}
-        <Section title="属性">
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1">属性（仕事/プライベートなど）</label>
-            <select
-              className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
-              value={settings.attribute || 'work'}
-              onChange={e => updateAttribute(e.target.value)}
-            >
-              {ATTRIBUTES.map(attr => (
-                <option key={attr.value} value={attr.value}>
-                  {attr.emoji} {attr.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </Section>
         <div className="space-y-6">
           {/* GitHub 認証 */}
           <Section title="GitHub 認証">
@@ -265,9 +261,6 @@ export default function Settings() {
                         <span className="text-xl">{manifest.icon}</span>
                         <div>
                           <span className="text-sm text-zinc-100">{manifest.label}</span>
-                          <span className="ml-2 text-xs text-zinc-600">
-                            {manifest.category === 'core' ? 'コア' : manifest.category === 'work' ? '仕事' : 'プライベート'}
-                          </span>
                         </div>
                       </div>
                       <Toggle
@@ -303,11 +296,15 @@ export default function Settings() {
           <div className="flex items-center gap-4 pt-2">
             <button
               onClick={handleSave}
-              className="rounded-full bg-zinc-100 text-zinc-900 px-6 py-2 text-sm font-semibold hover:bg-white transition-colors"
+              disabled={vaultSaving}
+              className="rounded-full bg-zinc-100 text-zinc-900 px-6 py-2 text-sm font-semibold hover:bg-white transition-colors disabled:opacity-50"
             >
               保存
             </button>
-            {saved && (
+            {vaultSaving && (
+              <span className="text-sm text-zinc-400">vault に保存中…</span>
+            )}
+            {saved && !vaultSaving && (
               <span className="text-sm text-emerald-400">✓ 保存しました</span>
             )}
           </div>
@@ -371,7 +368,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       }`}
     >
       <span
-        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+        className={`absolute top-1 left-0 w-4 h-4 rounded-full bg-white transition-transform ${
           value ? 'translate-x-5' : 'translate-x-1'
         }`}
       />
