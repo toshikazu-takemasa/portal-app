@@ -8,9 +8,9 @@
 import { createStorageAdapter } from '@/profiles'
 import type { JournalEntry } from '@/shared/types'
 
-/** 今日の日付文字列 (YYYY-MM-DD) */
+/** 今日の日付文字列 (YYYY-MM-DD, JST基準) */
 export function getTodayDateString(): string {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
 /** 指定日の日記を取得する */
