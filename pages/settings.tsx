@@ -2,17 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { getSettings, saveSettings } from '@/profiles/index'
-import type { Profile, FeatureFlags, AiPersona, AiProviderId } from '@/shared/types'
-
-const FEATURE_LABELS: Record<keyof FeatureFlags, string> = {
-  backlog: 'Backlog連携',
-  finance: '家計管理',
-  ai_ticker: 'AIティッカー',
-  ai_summary: 'AIサマリー',
-  voice_input: '音声入力（将来）',
-  calendar: 'カレンダー表示',
-  quick_links: 'クイックリンク表示',
-}
+import { APP_REGISTRY } from '@/apps/registry'
+import type { Profile, AiPersona, AiProviderId, InstalledApp } from '@/shared/types'
 
 // 属性の選択肢
 const ATTRIBUTES = [
@@ -25,6 +16,15 @@ const AI_PROVIDERS: Array<{ id: AiProviderId; label: string; defaultModel: strin
   { id: 'gemini', label: 'Gemini', defaultModel: 'gemini-2.5-flash' },
 ]
 
+// アプリ固有設定キーの表示名・ヒント・入力タイプ
+const SETTING_META: Record<string, { label: string; hint?: string; type?: string; placeholder?: string }> = {
+  backlog_space_id:     { label: 'スペース ID',        hint: '例: myspace.backlog.com', placeholder: 'myspace.backlog.com' },
+  backlog_api_key:      { label: 'API キー',           type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxx' },
+  google_client_id:     { label: 'クライアント ID',     placeholder: 'xxxxxxxx.apps.googleusercontent.com' },
+  google_refresh_token: { label: 'リフレッシュトークン', type: 'password', placeholder: '1//xxxxxxxxxx' },
+  github_issues_repo:   { label: 'リポジトリ名',        hint: 'owner/repo 形式', placeholder: 'owner/repo' },
+}
+
 export default function Settings() {
   const router = useRouter()
   const [settings, setSettings] = useState<Profile | null>(null)
@@ -33,7 +33,6 @@ export default function Settings() {
   useEffect(() => {
     setSettings(getSettings())
   }, [])
-
 
   if (!settings) return null
 
@@ -44,11 +43,6 @@ export default function Settings() {
 
   function updateAttribute(value: string) {
     setSettings((prev) => prev ? { ...prev, attribute: value } : prev)
-    setSaved(false)
-  }
-
-  function updateFeature(key: keyof FeatureFlags, value: boolean) {
-    setSettings((prev) => prev ? { ...prev, features: { ...prev.features, [key]: value } } : prev)
     setSaved(false)
   }
 
@@ -78,6 +72,38 @@ export default function Settings() {
       }
     })
     setSaved(false)
+  }
+
+  // ADR-007: アプリの有効/無効切り替え
+  function updateAppEnabled(appId: string, enabled: boolean) {
+    setSettings((prev) => {
+      if (!prev) return prev
+      const apps = prev.installedApps ?? []
+      const exists = apps.find((a) => a.appId === appId)
+      const updated: InstalledApp[] = exists
+        ? apps.map((a) => a.appId === appId ? { ...a, enabled } : a)
+        : [...apps, { appId, enabled, settings: {}, installedAt: new Date().toISOString() }]
+      return { ...prev, installedApps: updated }
+    })
+    setSaved(false)
+  }
+
+  // ADR-007: アプリ固有設定の更新
+  function updateAppSetting(appId: string, key: string, value: string) {
+    setSettings((prev) => {
+      if (!prev) return prev
+      const apps = prev.installedApps ?? []
+      const updated: InstalledApp[] = apps.map((a) =>
+        a.appId === appId ? { ...a, settings: { ...a.settings, [key]: value } } : a
+      )
+      return { ...prev, installedApps: updated }
+    })
+    setSaved(false)
+  }
+
+  function getAppState(appId: string): { enabled: boolean; settings: Record<string, string> } {
+    const installed = settings?.installedApps?.find((a) => a.appId === appId)
+    return { enabled: installed?.enabled ?? false, settings: installed?.settings ?? {} }
   }
 
   function handleSave() {
@@ -224,40 +250,52 @@ export default function Settings() {
             />
           </Section>
 
-          {/* Backlog 設定 */}
-          {settings.features.backlog && (
-            <Section title="Backlog">
-              <Field
-                label="スペース ID"
-                hint="例: myspace.backlog.com"
-                value={settings.backlog_space_id ?? ''}
-                onChange={(v) => updateField('backlog_space_id', v)}
-                placeholder="myspace.backlog.com"
-              />
-              <Field
-                label="API キー"
-                type="password"
-                value={settings.backlog_api_key ?? ''}
-                onChange={(v) => updateField('backlog_api_key', v)}
-                placeholder="xxxxxxxxxxxxxxxxxxxx"
-              />
-            </Section>
-          )}
-
-          {/* 機能フラグ */}
-          <Section title="機能 ON/OFF">
+          {/* アプリ（ADR-007: App Catalog）*/}
+          <Section title="アプリ">
+            <p className="text-xs text-zinc-500 -mt-2 mb-2">
+              使用するアプリを有効にしてください。必要な設定がある場合は有効化後に入力します。
+            </p>
             <div className="space-y-3">
-              {(Object.entries(FEATURE_LABELS) as [keyof FeatureFlags, string][]).map(
-                ([key, label]) => (
-                  <label key={key} className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-300">{label}</span>
-                    <Toggle
-                      value={settings.features[key]}
-                      onChange={(v) => updateFeature(key, v)}
-                    />
-                  </label>
+              {APP_REGISTRY.map((manifest) => {
+                const { enabled, settings: appSettings } = getAppState(manifest.id)
+                return (
+                  <div key={manifest.id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{manifest.icon}</span>
+                        <div>
+                          <span className="text-sm text-zinc-100">{manifest.label}</span>
+                          <span className="ml-2 text-xs text-zinc-600">
+                            {manifest.category === 'core' ? 'コア' : manifest.category === 'work' ? '仕事' : 'プライベート'}
+                          </span>
+                        </div>
+                      </div>
+                      <Toggle
+                        value={enabled}
+                        onChange={(v) => updateAppEnabled(manifest.id, v)}
+                      />
+                    </div>
+                    {enabled && manifest.requiredSettings.length > 0 && (
+                      <div className="mt-4 space-y-3 pt-3 border-t border-zinc-800">
+                        {manifest.requiredSettings.map((settingKey) => {
+                          const meta = SETTING_META[settingKey] ?? { label: settingKey }
+                          return (
+                            <Field
+                              key={settingKey}
+                              label={meta.label}
+                              hint={meta.hint}
+                              type={meta.type ?? 'text'}
+                              value={appSettings[settingKey] ?? ''}
+                              onChange={(v) => updateAppSetting(manifest.id, settingKey, v)}
+                              placeholder={meta.placeholder ?? ''}
+                            />
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
-              )}
+              })}
             </div>
           </Section>
 
