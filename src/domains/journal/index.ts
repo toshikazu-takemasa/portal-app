@@ -41,13 +41,21 @@ export function createEmptyEntry(date: string): JournalEntry {
 
 /**
  * 日記エントリの末尾にスニペットを追記して保存する（ADR-012）
- * 各アプリページの「日記に反映」ボタンから呼び出す共通関数
+ * SHA 不整合（409）が発生した場合は最新 SHA で1回リトライする
  */
 export async function appendToJournal(date: string, snippet: string): Promise<void> {
   const adapter = createStorageAdapter()
-  const existing = await adapter.getJournal(date)
-  const newContent = (existing?.content ?? '') + snippet
-  await adapter.saveJournal({ date, content: newContent, sha: existing?.sha })
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const existing = await adapter.getJournal(date)
+    const newContent = (existing?.content ?? '') + snippet
+    try {
+      await adapter.saveJournal({ date, content: newContent, sha: existing?.sha })
+      return
+    } catch (e) {
+      if (attempt === 0 && String(e).includes('409')) continue
+      throw e
+    }
+  }
 }
 
 // Reflection formatters（ADR-012）
