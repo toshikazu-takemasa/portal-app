@@ -137,13 +137,6 @@ export function getSettings(): Profile {
               parsed
             ),
     }
-    // avatarUrl が未設定で vault が設定済みの場合は自動導出
-    if (!merged.ai_persona.avatarUrl && merged.github_repo) {
-      merged.ai_persona = {
-        ...merged.ai_persona,
-        avatarUrl: `https://raw.githubusercontent.com/${merged.github_repo}/${merged.github_branch}/vault/images/avatar.png`,
-      }
-    }
     return merged
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -151,16 +144,21 @@ export function getSettings(): Profile {
 }
 
 /**
- * vault の ai_persona で Profile のペルソナを上書きする（空値は無視）
- * index.tsx の getPortalConfig 完了後に呼び出す
+ * vault の ai_persona を primary source として Profile に適用する。
+ * vault の値が空でない場合は localStorage より優先する（vault first）。
+ * name / userCallName / avatarUrl / systemPrompt は vault が正とする。
+ * providerId / model / apiKey は localStorage（設定画面）が正とする。
  */
-export function mergeVaultPersona(settings: Profile, vaultPersona: Partial<AiPersona>): Profile {
-  const overrides = Object.fromEntries(
+export function applyVaultPersona(settings: Profile, vaultPersona: Partial<AiPersona>): Profile {
+  const vaultFields = Object.fromEntries(
     Object.entries(vaultPersona).filter(([, v]) => v !== '' && v !== undefined)
   ) as Partial<AiPersona>
   return {
     ...settings,
-    ai_persona: { ...settings.ai_persona, ...overrides },
+    ai_persona: {
+      ...settings.ai_persona,  // providerId / model / apiKey はそのまま
+      ...vaultFields,           // name / userCallName / avatarUrl / systemPrompt を vault で上書き
+    },
   }
 }
 

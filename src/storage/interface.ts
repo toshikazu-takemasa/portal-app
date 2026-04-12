@@ -5,7 +5,7 @@
 // 将来実装: D1StorageAdapter (storage/d1.ts)
 // ============================================================
 
-import type { JournalEntry, PortalConfig } from '@/shared/types'
+import type { JournalEntry, PortalConfig, AiPersona } from '@/shared/types'
 
 export interface StorageAdapter {
   // --- Journal ---
@@ -21,6 +21,14 @@ export interface StorageAdapter {
   getPortalConfig(): Promise<PortalConfig>
   /** portal-config.json を保存する */
   savePortalConfig(config: PortalConfig): Promise<void>
+
+  // --- AI Persona ---
+  /**
+   * vault/persona/persona.md を読み込み AiPersona を返す。
+   * frontmatter(name/userCallName/avatarUrl) + 本文(systemPrompt) で構成。
+   * ファイルが存在しない場合は null を返す。
+   */
+  getAiPersona(): Promise<Partial<AiPersona> | null>
 
   // --- Files（汎用） ---
   /** 任意パスのファイルを取得する（Markdown等） */

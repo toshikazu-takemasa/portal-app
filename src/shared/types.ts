@@ -170,7 +170,6 @@ export interface PortalConfig {
   dailyTasks: ChecklistItem[]
   pillars: ChecklistItem[]   // 3つの柱
   kintaiUrl?: string
-  ai_persona?: Partial<AiPersona>  // vault側のAI人格設定（avatarUrlなど）
 }
 
 // ------------------------------------------------------------

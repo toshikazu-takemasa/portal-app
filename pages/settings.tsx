@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { getSettings, saveSettings, createStorageAdapter } from '@/profiles/index'
+import { getSettings, saveSettings } from '@/profiles/index'
 import { APP_REGISTRY } from '@/apps/registry'
-import type { Profile, AiPersona, AiProviderId, InstalledApp } from '@/shared/types'
+import type { Profile, AiProviderId, InstalledApp } from '@/shared/types'
 
 const AI_PROVIDERS: Array<{ id: AiProviderId; label: string; defaultModel: string }> = [
   { id: 'anthropic', label: 'Anthropic', defaultModel: 'claude-haiku-4-5-20251001' },
@@ -23,7 +23,6 @@ export default function Settings() {
   const router = useRouter()
   const [settings, setSettings] = useState<Profile | null>(null)
   const [saved, setSaved] = useState(false)
-  const [vaultSaving, setVaultSaving] = useState(false)
 
   useEffect(() => {
     setSettings(getSettings())
@@ -33,11 +32,6 @@ export default function Settings() {
 
   function updateField<K extends keyof Profile>(key: K, value: Profile[K]) {
     setSettings((prev) => prev ? { ...prev, [key]: value } : prev)
-    setSaved(false)
-  }
-
-  function updateAiPersona(key: keyof AiPersona, value: string) {
-    setSettings((prev) => prev ? { ...prev, ai_persona: { ...prev.ai_persona, [key]: value } } : prev)
     setSaved(false)
   }
 
@@ -96,32 +90,9 @@ export default function Settings() {
     return { enabled: installed?.enabled ?? false, settings: installed?.settings ?? {} }
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!settings) return
     saveSettings(settings)
-
-    // vault にも ai_persona を保存
-    if (settings.gh_pat && settings.github_repo) {
-      setVaultSaving(true)
-      try {
-        const adapter = createStorageAdapter()
-        const config = await adapter.getPortalConfig()
-        await adapter.savePortalConfig({
-          ...config,
-          ai_persona: {
-            name:         settings.ai_persona.name,
-            userCallName: settings.ai_persona.userCallName,
-            avatarUrl:    settings.ai_persona.avatarUrl,
-            systemPrompt: settings.ai_persona.systemPrompt,
-          },
-        })
-      } catch (e) {
-        console.warn('vault ai_persona 保存失敗:', e)
-      } finally {
-        setVaultSaving(false)
-      }
-    }
-
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -182,8 +153,11 @@ export default function Settings() {
             />
           </Section>
 
-          {/* AI人格設定 */}
-          <Section title="AI人格設定">
+          {/* AI プロバイダ設定（APIキー・モデル） */}
+          <Section title="AI プロバイダ">
+            <p className="text-xs text-zinc-500 -mt-2 mb-2">
+              名前・呼称・アバター・プロンプトは vault/persona/persona.md で管理します。
+            </p>
             <div>
               <label className="block text-xs text-zinc-400 mb-1">AIプロバイダ</label>
               <select
@@ -202,46 +176,15 @@ export default function Settings() {
               label="モデル"
               hint="例: claude-haiku-4-5-20251001 / gemini-2.5-flash"
               value={settings.ai_persona?.model ?? ''}
-              onChange={(v) => updateAiPersona('model', v)}
+              onChange={(v) => updateField('ai_persona', { ...settings.ai_persona, model: v })}
               placeholder="providerに対応したモデルID"
             />
-            <Field
-              label="AI名"
-              value={settings.ai_persona?.name ?? 'パートナー'}
-              onChange={(v) => updateAiPersona('name', v)}
-              placeholder="パートナー"
-            />
-            <Field
-              label="ユーザーの呼び方"
-              value={settings.ai_persona?.userCallName ?? 'あんた'}
-              onChange={(v) => updateAiPersona('userCallName', v)}
-              placeholder="あんた"
-            />
-            <Field
-              label="アバター画像URL"
-              value={settings.ai_persona?.avatarUrl ?? ''}
-              onChange={(v) => updateAiPersona('avatarUrl', v)}
-              placeholder="https://example.com/avatar.png"
-            />
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">
-                システムプロンプト
-                <span className="ml-2 text-zinc-600">AIの性格・口調</span>
-              </label>
-              <textarea
-                value={settings.ai_persona?.systemPrompt ?? ''}
-                onChange={(e) => updateAiPersona('systemPrompt', e.target.value)}
-                rows={4}
-                placeholder="あなたは気さくで頼りになるAIアシスタントです。"
-                className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
-              />
-            </div>
             <Field
               label="AI API キー"
               hint="選択したプロバイダのキーを入力"
               type="password"
               value={settings.ai_persona?.apiKey ?? ''}
-              onChange={(v) => updateAiPersona('apiKey', v)}
+              onChange={(v) => updateField('ai_persona', { ...settings.ai_persona, apiKey: v })}
               placeholder="プロバイダのAPIキー"
             />
           </Section>
@@ -296,15 +239,11 @@ export default function Settings() {
           <div className="flex items-center gap-4 pt-2">
             <button
               onClick={handleSave}
-              disabled={vaultSaving}
-              className="rounded-full bg-zinc-100 text-zinc-900 px-6 py-2 text-sm font-semibold hover:bg-white transition-colors disabled:opacity-50"
+              className="rounded-full bg-zinc-100 text-zinc-900 px-6 py-2 text-sm font-semibold hover:bg-white transition-colors"
             >
               保存
             </button>
-            {vaultSaving && (
-              <span className="text-sm text-zinc-400">vault に保存中…</span>
-            )}
-            {saved && !vaultSaving && (
+            {saved && (
               <span className="text-sm text-emerald-400">✓ 保存しました</span>
             )}
           </div>

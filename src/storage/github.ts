@@ -5,7 +5,34 @@
 // ============================================================
 
 import type { StorageAdapter } from './interface'
-import type { JournalEntry, PortalConfig } from '@/shared/types'
+import type { JournalEntry, PortalConfig, AiPersona } from '@/shared/types'
+
+const PERSONA_PATH = 'vault/persona/persona.md'
+
+/**
+ * vault/persona/persona.md の YAML frontmatter をパースする。
+ * 依存ライブラリなしで簡易実装（key: value 形式のみ対応）。
+ */
+function parsePersonaMd(content: string): Partial<AiPersona> {
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)/)
+  if (!fmMatch) return { systemPrompt: content.trim() }
+  const fmLines = fmMatch[1].split('\n')
+  const body = fmMatch[2].trim()
+  const fm: Record<string, string> = {}
+  for (const line of fmLines) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx === -1) continue
+    const key = line.slice(0, colonIdx).trim()
+    const val = line.slice(colonIdx + 1).trim()
+    fm[key] = val
+  }
+  return {
+    ...(fm.name         ? { name:         fm.name }         : {}),
+    ...(fm.userCallName ? { userCallName: fm.userCallName } : {}),
+    ...(fm.avatarUrl    ? { avatarUrl:    fm.avatarUrl }    : {}),
+    ...(body            ? { systemPrompt: body }            : {}),
+  }
+}
 
 const GITHUB_API = 'https://api.github.com'
 
@@ -111,6 +138,14 @@ export class GitHubStorageAdapter implements StorageAdapter {
       JSON.stringify(config, null, 2),
       existing?.sha
     )
+  }
+
+  // --- AI Persona ---
+
+  async getAiPersona(): Promise<Partial<AiPersona> | null> {
+    const result = await this.getFile(PERSONA_PATH)
+    if (!result) return null
+    return parsePersonaMd(result.content)
   }
 
   // --- Files（汎用） ---
