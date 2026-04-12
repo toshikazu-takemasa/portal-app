@@ -1,23 +1,44 @@
 // ============================================================
-// GithubProvider — stub（ADR-008 / ADR-009）
-// GitHub Issues 連携の将来実装プレースホルダ
-// isConfigured() = false のため Orchestrator には組み込まれない
-// StorageAdapter（GitHub Contents API）とは別物:
-//   StorageAdapter → 日記・設定ファイルの読み書き
-//   GithubProvider → Issues の read-only 取得（将来実装）
+// GithubProvider（ADR-008 / ADR-009 / ADR-010）
+// GitHub Issues 連携 — /api/tasks/github 経由でタスクを取得する
+// isConfigured(): PAT と リポジトリが設定されている場合 true
+// fetchTasks(): /api/tasks/github を呼び出して UnifiedTask[] を返す
+//
+// NOTE: 直接 api.github.com を叩くのではなく、Next.js API Route をプロキシとして使う
+//       これにより PAT がブラウザの Network タブに外部ドメイン向けリクエストとして現れない（ADR-010）
 // ============================================================
 
+import { getSettings } from '@/profiles'
 import type { UnifiedTask, TaskQuery } from '@/shared/types'
 import type { TaskIntegrationProvider } from './interface'
+
+function resolveCredentials(): { pat: string; repo: string } | null {
+  const profile = getSettings()
+  const appSettings = profile.installedApps?.find((a) => a.appId === 'github-issues')?.settings
+  const repo = appSettings?.github_issues_repo ?? ''
+  const pat = profile.gh_pat ?? ''
+  if (!pat || !repo) return null
+  return { pat, repo }
+}
 
 export class GithubProvider implements TaskIntegrationProvider {
   readonly sourceId = 'github' as const
 
   isConfigured(): boolean {
-    return false // TODO: GitHub Issues 設定が完了したら実装する
+    return resolveCredentials() !== null
   }
 
   async fetchTasks(_query: TaskQuery): Promise<UnifiedTask[]> {
-    return [] // TODO: GitHub Issues API 呼び出しを実装する
+    const creds = resolveCredentials()
+    if (!creds) return []
+
+    const res = await fetch('/api/tasks/github', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pat: creds.pat, repo: creds.repo }),
+    })
+    if (!res.ok) throw new Error(`GitHub Issues 取得エラー (${res.status})`)
+    const data = (await res.json()) as { tasks: UnifiedTask[] }
+    return data.tasks
   }
 }
