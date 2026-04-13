@@ -43,13 +43,8 @@ export default async function handler(
   }
 
   try {
-    // 現在のユーザー名を取得（assignee フィルタに使う）
-    const userRes = await fetch(`${GITHUB_API}/user`, { headers: githubHeaders(pat) })
-    if (!userRes.ok) throw new Error('GitHub API 認証エラー')
-    const user = (await userRes.json()) as { login: string }
-
-    // 指定リポジトリの自分にアサインされたオープン Issue を取得（PR 除外）
-    const url = `${GITHUB_API}/repos/${repo}/issues?assignee=${user.login}&state=open&per_page=50`
+    // 指定リポジトリのオープン Issue を全件取得（PR 除外）
+    const url = `${GITHUB_API}/repos/${repo}/issues?state=open&per_page=100`
     const issuesRes = await fetch(url, { headers: githubHeaders(pat) })
     if (!issuesRes.ok) throw new Error(`GitHub Issues 取得エラー (${issuesRes.status})`)
     const issues = (await issuesRes.json()) as GitHubIssueRaw[]
