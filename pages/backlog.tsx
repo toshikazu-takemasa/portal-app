@@ -149,6 +149,11 @@ export default function BacklogPage() {
           </div>
         ) : loading ? (
           <p className="text-zinc-500 text-sm">読み込み中...</p>
+        ) : error ? (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6">
+            <p className="text-sm text-red-400 font-medium">課題の取得に失敗しました</p>
+            <p className="mt-1 text-xs text-zinc-400 break-all">{error}</p>
+          </div>
         ) : tasks.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-zinc-500 text-sm">担当課題はありません</p>
