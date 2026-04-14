@@ -58,5 +58,49 @@ export async function appendToJournal(date: string, snippet: string): Promise<vo
   }
 }
 
+/**
+ * 日記内の指定セクションを差分更新する（差分登録）
+ * - sectionHeader（例: `## タスク（2026-04-14）`）が既に存在すれば上書き
+ * - 存在しなければ末尾に追記
+ * セクション境界は `\n---\n` で判定する
+ * SHA 不整合（409）が発生した場合は最新 SHA で1回リトライする
+ */
+export async function upsertJournalSection(date: string, snippet: string, sectionHeader: string): Promise<void> {
+  const adapter = createStorageAdapter()
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const existing = await adapter.getJournal(date)
+    const newContent = upsertSection(existing?.content ?? '', snippet, sectionHeader)
+    try {
+      await adapter.saveJournal({ date, content: newContent, sha: existing?.sha })
+      return
+    } catch (e) {
+      if (attempt === 0 && String(e).includes('409')) continue
+      throw e
+    }
+  }
+}
+
+/**
+ * 文字列内のセクションを差分更新する純粋関数
+ * sectionHeader が存在すれば、直前の `\n---\n` から次の `\n---\n`（または末尾）までを snippet で置換する
+ */
+export function upsertSection(currentContent: string, snippet: string, sectionHeader: string): string {
+  const sectionIdx = currentContent.indexOf(sectionHeader)
+  if (sectionIdx === -1) {
+    return currentContent + snippet
+  }
+
+  // セクション開始: sectionHeader より前にある最後の \n---\n（なければ先頭）
+  const sep = '\n---\n'
+  const sepIdx = currentContent.lastIndexOf(sep, sectionIdx)
+  const blockStart = sepIdx !== -1 ? sepIdx : 0
+
+  // セクション終了: sectionHeader より後にある最初の \n---\n（なければ末尾）
+  const nextSepIdx = currentContent.indexOf(sep, sectionIdx + sectionHeader.length)
+  const blockEnd = nextSepIdx !== -1 ? nextSepIdx : currentContent.length
+
+  return currentContent.slice(0, blockStart) + snippet + currentContent.slice(blockEnd)
+}
+
 // Reflection formatters（ADR-012）
 export { buildTaskReflectionMarkdown, buildFinanceReflectionMarkdown } from './reflection'

@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { isAppEnabled, getSettings } from '@/profiles'
-import { appendToJournal, buildTaskReflectionMarkdown } from '@/domains/journal'
+import { upsertJournalSection, buildTaskReflectionMarkdown } from '@/domains/journal'
 import type { UnifiedTask } from '@/shared/types'
 
 const STATUS_LABEL: Record<UnifiedTask['status'], string> = {
@@ -105,7 +105,7 @@ export default function BacklogPage() {
     setError('')
     try {
       const snippet = buildTaskReflectionMarkdown(today, selected)
-      await appendToJournal(today, snippet)
+      await upsertJournalSection(today, snippet, `## Backlog（${today}）`)
       setReflected(true)
       setTimeout(() => setReflected(false), 2500)
     } catch (e) {

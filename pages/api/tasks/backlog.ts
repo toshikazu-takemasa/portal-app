@@ -52,16 +52,17 @@ export default async function handler(
     if (!myselfRes.ok) throw new Error('Backlog API 認証エラー')
     const myself = (await myselfRes.json()) as { id: number }
 
-    // 自分にアサインされたオープン課題を取得
+    // 自分にアサインされた課題を取得（statusId 未指定 = 全ステータス）
+    // 「完了」のみサーバー側でフィルタするため、カスタムステータスも漏れなく取得する
     const params = new URLSearchParams({ apiKey, count: '50', order: 'updated' })
-    params.append('statusId[]', '1') // 未対応
-    params.append('statusId[]', '2') // 処理中
-    params.append('statusId[]', '3') // 処理済み
     params.append('assigneeId[]', String(myself.id))
 
     const issuesRes = await fetch(`https://${spaceId}/api/v2/issues?${params.toString()}`)
     if (!issuesRes.ok) throw new Error('Backlog 課題取得エラー')
-    const issues = (await issuesRes.json()) as BacklogIssueRaw[]
+    const allIssues = (await issuesRes.json()) as BacklogIssueRaw[]
+
+    // 「完了」ステータスのみ除外（カスタムステータスを含むすべての未完了を表示）
+    const issues = allIssues.filter((issue) => issue.status.name !== '完了')
 
     const tasks: UnifiedTask[] = issues.map((issue) => ({
       id: String(issue.id),

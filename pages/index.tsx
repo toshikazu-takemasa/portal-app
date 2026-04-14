@@ -150,14 +150,6 @@ export default function Home() {
             description="今日のタスクを確認"
             onClick={() => router.push('/checklist')}
           />
-          {isAppEnabled('calendar') && (
-            <FeatureCard
-              icon="📅"
-              title="カレンダー"
-              description="記録の日を一覧で確認"
-              onClick={() => router.push('/calendar')}
-            />
-          )}
           {isAppEnabled('backlog') && (
             <FeatureCard
               icon="📋"

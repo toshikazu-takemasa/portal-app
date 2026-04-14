@@ -7,7 +7,7 @@ import {
   saveTodayChecklist,
 } from '@/domains/task'
 import {
-  appendToJournal,
+  upsertJournalSection,
   buildTaskReflectionMarkdown,
 } from '@/domains/journal'
 import type { DailyChecklist, ChecklistItem, UnifiedTask } from '@/shared/types'
@@ -71,7 +71,7 @@ export default function ChecklistPage() {
         status: 'completed' as const,
       }))
       const snippet = buildTaskReflectionMarkdown(today, tasks)
-      await appendToJournal(today, snippet)
+      await upsertJournalSection(today, snippet, `## タスク（${today}）`)
       setReflected(true)
       setTimeout(() => setReflected(false), 2500)
     } catch (e) {

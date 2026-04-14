@@ -26,15 +26,6 @@ export const APP_REGISTRY: AppManifest[] = [
     requiredSettings: [],
   },
   {
-    id: 'calendar',
-    label: 'カレンダー',
-    icon: '📅',
-    category: 'core',
-    capabilities: ['calendar'],
-    defaultEnabled: true,
-    requiredSettings: [],
-  },
-  {
     id: 'chat',
     label: 'AIチャット',
     icon: '💬',
