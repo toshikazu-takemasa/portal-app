@@ -52,16 +52,26 @@ export default async function handler(
     if (!myselfRes.ok) throw new Error('Backlog API 認証エラー')
     const myself = (await myselfRes.json()) as { id: number }
 
-    // 自分にアサインされた未完了課題を取得
-    // statusId 1=未対応 2=処理中 3=処理済み を指定し、完了(4)を除外する
-    // カスタムステータス（「次にやる」等）はスペースのステータス一覧を取得して追加する
-    const statusesRes = await fetch(`https://${spaceId}/api/v2/statuses?apiKey=${encodeURIComponent(apiKey)}`)
-    let nonCompletedStatusIds = ['1', '2', '3'] // フォールバック
-    if (statusesRes.ok) {
-      const statuses = (await statusesRes.json()) as Array<{ id: number; name: string }>
-      nonCompletedStatusIds = statuses
-        .filter((s) => s.name !== '完了')
-        .map((s) => String(s.id))
+    // 全プロジェクトのステータスを並列取得し、「完了」以外の statusId を収集
+    // /api/v2/statuses はプロジェクト指定必須のため /api/v2/projects 経由で取得する
+    const projectsRes = await fetch(
+      `https://${spaceId}/api/v2/projects?apiKey=${encodeURIComponent(apiKey)}&archived=false`
+    )
+    const nonCompletedStatusIds = new Set<string>(['1', '2', '3']) // 標準ステータスをフォールバックとして含む
+    if (projectsRes.ok) {
+      const projects = (await projectsRes.json()) as Array<{ id: number }>
+      const allStatuses = await Promise.all(
+        projects.map((p) =>
+          fetch(`https://${spaceId}/api/v2/projects/${p.id}/statuses?apiKey=${encodeURIComponent(apiKey)}`)
+            .then((r) => (r.ok ? r.json() : []))
+            .catch(() => [])
+        )
+      )
+      for (const statuses of allStatuses) {
+        for (const s of statuses as Array<{ id: number; name: string }>) {
+          if (s.name !== '完了') nonCompletedStatusIds.add(String(s.id))
+        }
+      }
     }
 
     const params = new URLSearchParams({ apiKey, count: '100', order: 'updated' })
