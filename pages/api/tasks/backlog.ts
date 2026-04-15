@@ -38,7 +38,11 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { spaceId, apiKey } = req.body as { spaceId?: string; apiKey?: string }
+  const { spaceId, apiKey, projectKeys } = req.body as {
+    spaceId?: string
+    apiKey?: string
+    projectKeys?: string // カンマ区切りのプロジェクトキー（省略時は全プロジェクト）
+  }
 
   if (!spaceId || !apiKey) {
     return res.status(400).json({ error: '認証情報が不足しています（spaceId / apiKey）' })
@@ -52,17 +56,18 @@ export default async function handler(
     if (!myselfRes.ok) throw new Error('Backlog API 認証エラー')
     const myself = (await myselfRes.json()) as { id: number }
 
-    // 全プロジェクトのステータスを並列取得し、「完了」以外の statusId を収集
-    // /api/v2/statuses はプロジェクト指定必須のため /api/v2/projects 経由で取得する
-    const projectsRes = await fetch(
-      `https://${spaceId}/api/v2/projects?apiKey=${encodeURIComponent(apiKey)}&archived=false`
-    )
-    const nonCompletedStatusIds = new Set<string>(['1', '2', '3']) // 標準ステータスをフォールバックとして含む
-    if (projectsRes.ok) {
-      const projects = (await projectsRes.json()) as Array<{ id: number }>
+    // 対象プロジェクトのステータスを並列取得し、「完了」以外の statusId を収集
+    // projectKeys 指定時はそのキーのみ、未指定時は全プロジェクトを検索（低速）
+    const nonCompletedStatusIds = new Set<string>(['1', '2', '3']) // 標準ステータスを初期値として含む
+    const targetKeys = projectKeys
+      ? projectKeys.split(',').map((k) => k.trim()).filter(Boolean)
+      : null
+
+    if (targetKeys && targetKeys.length > 0) {
+      // 指定プロジェクトのステータスのみ取得（高速）
       const allStatuses = await Promise.all(
-        projects.map((p) =>
-          fetch(`https://${spaceId}/api/v2/projects/${p.id}/statuses?apiKey=${encodeURIComponent(apiKey)}`)
+        targetKeys.map((key) =>
+          fetch(`https://${spaceId}/api/v2/projects/${key}/statuses?apiKey=${encodeURIComponent(apiKey)}`)
             .then((r) => (r.ok ? r.json() : []))
             .catch(() => [])
         )
@@ -70,6 +75,26 @@ export default async function handler(
       for (const statuses of allStatuses) {
         for (const s of statuses as Array<{ id: number; name: string }>) {
           if (s.name !== '完了') nonCompletedStatusIds.add(String(s.id))
+        }
+      }
+    } else {
+      // 全プロジェクトを取得（フォールバック）
+      const projectsRes = await fetch(
+        `https://${spaceId}/api/v2/projects?apiKey=${encodeURIComponent(apiKey)}&archived=false`
+      )
+      if (projectsRes.ok) {
+        const projects = (await projectsRes.json()) as Array<{ id: number }>
+        const allStatuses = await Promise.all(
+          projects.map((p) =>
+            fetch(`https://${spaceId}/api/v2/projects/${p.id}/statuses?apiKey=${encodeURIComponent(apiKey)}`)
+              .then((r) => (r.ok ? r.json() : []))
+              .catch(() => [])
+          )
+        )
+        for (const statuses of allStatuses) {
+          for (const s of statuses as Array<{ id: number; name: string }>) {
+            if (s.name !== '完了') nonCompletedStatusIds.add(String(s.id))
+          }
         }
       }
     }

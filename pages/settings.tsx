@@ -14,6 +14,7 @@ const AI_PROVIDERS: Array<{ id: AiProviderId; label: string; defaultModel: strin
 const SETTING_META: Record<string, { label: string; hint?: string; type?: string; placeholder?: string }> = {
   backlog_space_id:     { label: 'スペース ID',        hint: '例: myspace.backlog.com', placeholder: 'myspace.backlog.com' },
   backlog_api_key:      { label: 'API キー',           type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxx' },
+  backlog_project_keys: { label: 'プロジェクトキー',   hint: 'カンマ区切り（例: SPR_SE,SPR_CZ）。未入力時は全プロジェクトを検索', placeholder: 'SPR_SE,SPR_CZ' },
   google_client_id:     { label: 'クライアント ID',     placeholder: 'xxxxxxxx.apps.googleusercontent.com' },
   google_refresh_token: { label: 'リフレッシュトークン', type: 'password', placeholder: '1//xxxxxxxxxx' },
   github_issues_repo:   { label: 'リポジトリ名',        hint: 'owner/repo 形式', placeholder: 'owner/repo' },

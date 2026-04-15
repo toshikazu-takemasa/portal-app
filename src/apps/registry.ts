@@ -50,7 +50,7 @@ export const APP_REGISTRY: AppManifest[] = [
     category: 'work',
     capabilities: ['task', 'external-integration'],
     defaultEnabled: false,
-    requiredSettings: ['backlog_space_id', 'backlog_api_key'],
+    requiredSettings: ['backlog_space_id', 'backlog_api_key', 'backlog_project_keys'],
   },
   {
     id: 'google-calendar',

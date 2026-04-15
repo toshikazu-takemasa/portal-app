@@ -33,13 +33,14 @@ function getTodayDateString() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
-function getBacklogCredentials(): { spaceId: string; apiKey: string } | null {
+function getBacklogCredentials(): { spaceId: string; apiKey: string; projectKeys?: string } | null {
   const profile = getSettings()
   const appSettings = profile.installedApps?.find((a) => a.appId === 'backlog')?.settings
   const spaceId = appSettings?.backlog_space_id ?? profile.backlog_space_id ?? ''
   const apiKey = appSettings?.backlog_api_key ?? profile.backlog_api_key ?? ''
   if (!spaceId || !apiKey) return null
-  return { spaceId, apiKey }
+  const projectKeys = appSettings?.backlog_project_keys ?? ''
+  return { spaceId, apiKey, ...(projectKeys ? { projectKeys } : {}) }
 }
 
 export default function BacklogPage() {
@@ -72,7 +73,7 @@ export default function BacklogPage() {
     fetch('/api/tasks/backlog', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ spaceId: creds.spaceId, apiKey: creds.apiKey }),
+      body: JSON.stringify({ spaceId: creds.spaceId, apiKey: creds.apiKey, projectKeys: creds.projectKeys }),
     })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
