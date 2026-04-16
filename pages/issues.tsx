@@ -3,7 +3,7 @@
 // /api/tasks/github 経由で GitHub Issues を取得・表示する
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { isAppEnabled, getSettings } from '@/profiles'
 import { appendToJournal, buildTaskReflectionMarkdown } from '@/domains/journal'
@@ -36,9 +36,17 @@ function getGithubCredentials(): { pat: string; repo: string } | null {
 export default function IssuesPage() {
   const router = useRouter()
   const today = getTodayDateString()
+  const CHECKED_KEY = `github_issues_checked_${today}`
 
   const [tasks, setTasks] = useState<UnifiedTask[]>([])
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    try {
+      const raw = localStorage.getItem(`github_issues_checked_${new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })}`)
+      if (raw) return new Set(JSON.parse(raw) as string[])
+    } catch {}
+    return new Set()
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [configured, setConfigured] = useState(false)
@@ -47,11 +55,10 @@ export default function IssuesPage() {
   const [reflected, setReflected] = useState(false)
 
   useEffect(() => {
-    if (!isAppEnabled('github-issues')) {
-      router.replace('/')
-      return
-    }
+    localStorage.setItem(CHECKED_KEY, JSON.stringify([...checkedIds]))
+  }, [checkedIds, CHECKED_KEY])
 
+  const fetchTasks = useCallback(() => {
     const creds = getGithubCredentials()
     if (!creds) {
       setConfigured(false)
@@ -61,6 +68,8 @@ export default function IssuesPage() {
 
     setConfigured(true)
     setRepo(creds.repo)
+    setLoading(true)
+    setError('')
 
     fetch('/api/tasks/github', {
       method: 'POST',
@@ -77,7 +86,15 @@ export default function IssuesPage() {
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
-  }, [router])
+  }, [])
+
+  useEffect(() => {
+    if (!isAppEnabled('github-issues')) {
+      router.replace('/')
+      return
+    }
+    fetchTasks()
+  }, [router, fetchTasks])
 
   function toggleCheck(id: string) {
     setCheckedIds((prev) => {
@@ -124,6 +141,16 @@ export default function IssuesPage() {
         {repo && <span className="text-xs text-zinc-500 truncate">{repo}</span>}
         {tasks.length > 0 && (
           <span className="text-xs text-zinc-500 shrink-0">{tasks.length} 件</span>
+        )}
+        <div className="flex-1" />
+        {configured && (
+          <button
+            onClick={fetchTasks}
+            disabled={loading}
+            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
+          >
+            再取得
+          </button>
         )}
       </header>
 
