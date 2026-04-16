@@ -173,5 +173,6 @@ export function createStorageAdapter(): StorageAdapter {
     branch: settings.github_branch,
     diaryPath: settings.diary_path,
     configPath: settings.config_path,
+    personaPath: `${settings.vault_path}/persona/persona.md`,
   })
 }

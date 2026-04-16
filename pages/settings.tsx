@@ -36,6 +36,22 @@ export default function Settings() {
     setSaved(false)
   }
 
+  /** vault_path 変更時、規約通りのサブパスを自動カスケードする */
+  function updateVaultPath(newVaultPath: string) {
+    setSettings((prev) => {
+      if (!prev) return prev
+      const old = prev.vault_path
+      return {
+        ...prev,
+        vault_path: newVaultPath,
+        diary_path:  prev.diary_path  === `${old}/diary`        ? `${newVaultPath}/diary`        : prev.diary_path,
+        config_path: prev.config_path === `${old}/config.json`  ? `${newVaultPath}/config.json`  : prev.config_path,
+        report_path: prev.report_path === `${old}/reports`      ? `${newVaultPath}/reports`      : prev.report_path,
+      }
+    })
+    setSaved(false)
+  }
+
   function updateAiProvider(value: string) {
     setSettings((prev) => {
       if (!prev) return prev
@@ -139,6 +155,13 @@ export default function Settings() {
               value={settings.github_branch}
               onChange={(v) => updateField('github_branch', v)}
               placeholder="main"
+            />
+            <Field
+              label="Vault パス"
+              hint="データルートディレクトリ（変更するとサブパスも自動更新）"
+              value={settings.vault_path}
+              onChange={updateVaultPath}
+              placeholder="vault"
             />
             <Field
               label="日記保存パス"

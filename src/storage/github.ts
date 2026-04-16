@@ -7,8 +7,6 @@
 import type { StorageAdapter } from './interface'
 import type { JournalEntry, PortalConfig, AiPersona } from '@/shared/types'
 
-const PERSONA_PATH = 'vault/persona/persona.md'
-
 /**
  * vault/persona/persona.md の YAML frontmatter をパースする。
  * 依存ライブラリなしで簡易実装（key: value 形式のみ対応）。
@@ -48,6 +46,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
   private readonly branch: string
   private readonly diaryPath: string
   private readonly configPath: string
+  private readonly personaPath: string
   private readonly pat: string
 
   constructor(opts: {
@@ -56,12 +55,14 @@ export class GitHubStorageAdapter implements StorageAdapter {
     branch: string
     diaryPath: string
     configPath: string
+    personaPath: string
   }) {
     this.pat = opts.pat
     this.repo = opts.repo
     this.branch = opts.branch
     this.diaryPath = opts.diaryPath
     this.configPath = opts.configPath
+    this.personaPath = opts.personaPath
   }
 
   private get headers(): HeadersInit {
@@ -143,7 +144,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
   // --- AI Persona ---
 
   async getAiPersona(): Promise<Partial<AiPersona> | null> {
-    const result = await this.getFile(PERSONA_PATH)
+    const result = await this.getFile(this.personaPath)
     if (!result) return null
     return parsePersonaMd(result.content)
   }

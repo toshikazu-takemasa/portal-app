@@ -12,59 +12,40 @@ function getFinancePath(yearMonth: string): string {
   return `${profile.vault_path}/finance/${yearMonth}.json`
 }
 
-/** 指定月の家計記録を取得する */
+/** 指定月の家計記録を取得する (DB経由) */
 export async function getMonthRecords(yearMonth: string): Promise<FinanceRecord[]> {
-  const adapter = createStorageAdapter()
-  const file = await adapter.getFile(getFinancePath(yearMonth))
-  if (!file) return []
   try {
-    return JSON.parse(file.content) as FinanceRecord[]
+    if (typeof window === 'undefined') return []
+    const res = await fetch(`/api/finance/records?yearMonth=${yearMonth}`)
+    if (!res.ok) return []
+    return await res.json()
   } catch {
     return []
   }
 }
 
-/** 家計記録を追加・更新する */
+/** 家計記録を追加・更新する (DB経由) */
 export async function saveRecord(record: FinanceRecord, yearMonth: string): Promise<void> {
-  const adapter = createStorageAdapter()
-  const path = getFinancePath(yearMonth)
-  const file = await adapter.getFile(path)
-  const records: FinanceRecord[] = file
-    ? (() => {
-      try {
-        return JSON.parse(file.content) as FinanceRecord[]
-      } catch {
-        return []
-      }
-    })()
-    : []
-
-  const idx = records.findIndex((r) => r.id === record.id)
-  if (idx >= 0) {
-    records[idx] = record
-  } else {
-    records.push(record)
+  if (typeof window === 'undefined') return
+  const res = await fetch('/api/finance/records', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ record, yearMonth })
+  })
+  if (!res.ok) {
+    throw new Error('保存に失敗しました')
   }
-
-  await adapter.saveFile(path, JSON.stringify(records, null, 2), file?.sha)
 }
 
-/** 家計記録を削除する */
+/** 家計記録を削除する (DB経由) */
 export async function deleteRecord(id: string, yearMonth: string): Promise<void> {
-  const adapter = createStorageAdapter()
-  const path = getFinancePath(yearMonth)
-  const file = await adapter.getFile(path)
-  if (!file) return
-
-  let records: FinanceRecord[] = []
-  try {
-    records = JSON.parse(file.content) as FinanceRecord[]
-  } catch {
-    return
+  if (typeof window === 'undefined') return
+  const res = await fetch(`/api/finance/records?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  })
+  if (!res.ok) {
+    throw new Error('削除に失敗しました')
   }
-
-  const filtered = records.filter((r) => r.id !== id)
-  await adapter.saveFile(path, JSON.stringify(filtered, null, 2), file.sha)
 }
 
 /** 現在の年月文字列 (YYYY-MM) */

@@ -11,6 +11,20 @@ export default function ChatPage() {
   const settings = getSettings()
 
   useEffect(() => {
+    const saved = localStorage.getItem('chat_history')
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved))
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chat_history', JSON.stringify(messages))
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -22,11 +36,11 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     try {
-      const res = await fetch('/api/summarize', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: messages.concat(userMsg).map(m => `${m.role === 'user' ? 'ユーザー' : settings.ai_persona.name}: ${m.content}`).join('\n'),
+          messages: messages.concat(userMsg).map(m => ({ role: m.role, content: m.content })),
           systemPrompt: settings.ai_persona.systemPrompt,
           aiName: settings.ai_persona.name,
           userCallName: settings.ai_persona.userCallName,
@@ -40,7 +54,7 @@ export default function ChatPage() {
         throw new Error(err.error ?? 'AI API エラー')
       }
       const data = await res.json()
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.summary as string }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.response as string }])
     } catch (e: any) {
       setError(e.message || 'エラーが発生しました')
     } finally {
@@ -57,9 +71,17 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans flex flex-col">
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-4">
-        <a href="/" className="text-zinc-400 hover:text-zinc-100 transition-colors text-sm">← 戻る</a>
-        <h1 className="text-lg font-semibold tracking-tight">AIチャット</h1>
+      <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <a href="/" className="text-zinc-400 hover:text-zinc-100 transition-colors text-sm">← 戻る</a>
+          <h1 className="text-lg font-semibold tracking-tight">AIチャット</h1>
+        </div>
+        <button 
+          onClick={() => { setMessages([]); localStorage.removeItem('chat_history'); }}
+          className="text-xs text-red-500 hover:text-red-400 font-medium"
+        >
+          履歴クリア
+        </button>
       </header>
       <main className="flex-1 flex flex-col max-w-2xl mx-auto w-full px-4 py-8">
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">

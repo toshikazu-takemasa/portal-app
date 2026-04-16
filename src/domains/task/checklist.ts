@@ -37,14 +37,15 @@ export function getTodayChecklist(date: string, template: ChecklistItem[]): Dail
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as DailyChecklist
-      // テンプレートに新しいアイテムが追加された場合はマージ
-      const existingIds = new Set(parsed.items.map((i) => i.id))
-      const newItems = template
-        .filter((t) => !existingIds.has(t.id))
-        .map((t) => ({ ...t, completed: false }))
+      // テンプレート (Vault) をマスターとし、ローカルキャッシュから完了状態のみをマージする (ADR-015)
+      const cachedStatus = new Map(parsed.items.map((i) => [i.id, i.completed] as const))
+      const mergedItems = template.map((t) => ({
+        ...t,
+        completed: cachedStatus.get(t.id) ?? false,
+      }))
       return {
         ...parsed,
-        items: [...parsed.items, ...newItems],
+        items: mergedItems,
       }
     } catch {
       // fall through to initialize
