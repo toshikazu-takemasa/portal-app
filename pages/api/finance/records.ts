@@ -36,15 +36,37 @@ export default async function handler(
       return res.status(200).json(records)
 
     } else if (req.method === 'POST') {
-      const { record, yearMonth } = req.body
+      const { record } = req.body
       if (!record) {
         return res.status(400).json({ error: 'record is required' })
       }
 
       const type = record.type as string
-      const amount = type === 'expense' ? -Math.abs(record.amount) : Math.abs(record.amount)
+      const category = String(record.category ?? '').trim()
+      const date = String(record.date ?? '').trim()
+      const rawAmount = Number(record.amount)
 
-      const stmt = db.prepare(`
+      if (!category) {
+        return res.status(400).json({ error: 'カテゴリは必須です' })
+      }
+      if (!date) {
+        return res.status(400).json({ error: '日付は必須です' })
+      }
+      if (!Number.isFinite(rawAmount) || rawAmount < 0) {
+        return res.status(400).json({ error: '金額が不正です' })
+      }
+
+      const amount = type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+
+      const upsertCategory = db.prepare(`
+        INSERT INTO categories (id, name, type)
+        VALUES (?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          type = excluded.type
+      `)
+
+      const upsertTransaction = db.prepare(`
         INSERT INTO transactions (id, categoryId, date, amount, description)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
@@ -52,15 +74,20 @@ export default async function handler(
           date = excluded.date,
           amount = excluded.amount,
           description = excluded.description
-      `);
+      `)
 
-      stmt.run(
-        record.id,
-        record.category,
-        record.date,
-        amount,
-        record.note || null
-      )
+      const saveTransaction = db.transaction(() => {
+        upsertCategory.run(category, category, type)
+        upsertTransaction.run(
+          String(record.id),
+          category,
+          date,
+          amount,
+          record.note || null
+        )
+      })
+
+      saveTransaction()
 
       return res.status(200).json({ success: true })
 

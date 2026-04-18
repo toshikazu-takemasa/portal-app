@@ -30,7 +30,8 @@ export async function saveRecord(record: FinanceRecord, yearMonth: string): Prom
     body: JSON.stringify({ record, yearMonth })
   })
   if (!res.ok) {
-    throw new Error('保存に失敗しました')
+    const payload = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(payload?.error ?? '保存に失敗しました')
   }
 }
 
