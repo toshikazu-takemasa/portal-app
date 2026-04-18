@@ -21,27 +21,26 @@ export default async function handler(
         ORDER BY date DESC, created_at DESC
       `)
       const rows = stmt.all(`${yearMonth}-%`) as any[]
-      
+
       const records: FinanceRecord[] = rows.map(r => ({
         id: r.id,
         date: r.date,
         // categories.type等を持たせるのが理想だが、ここでは transactions.raw_data やシンプルに扱う
-        type: r.amount >= 0 ? 'income' : 'expense', 
-        category: r.categoryId || '未分類', 
+        type: r.amount >= 0 ? 'income' : 'expense',
+        category: r.categoryId || '未分類',
         amount: Math.abs(r.amount),
         note: r.description || undefined
       }))
 
-      // 現在の実装では transactions テーブルだけでも動くようにマイグレーションする
-      // TODO: JSONの FinanceRecord そのままを返すためのプロキシ互換性を維持する
+      // 既存フロントとの互換性維持のため、ここでは従来どおり FinanceRecord[] を返す
       return res.status(200).json(records)
-      
+
     } else if (req.method === 'POST') {
       const { record, yearMonth } = req.body
       if (!record) {
         return res.status(400).json({ error: 'record is required' })
       }
-      
+
       const type = record.type as string
       const amount = type === 'expense' ? -Math.abs(record.amount) : Math.abs(record.amount)
 

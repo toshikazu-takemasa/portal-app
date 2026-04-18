@@ -4,13 +4,9 @@
 // データは vault/finance/YYYY-MM.json に保存する
 // ============================================================
 
-import { createStorageAdapter, getSettings } from '@/profiles'
 import type { FinanceRecord } from '@/shared/types'
 
-function getFinancePath(yearMonth: string): string {
-  const profile = getSettings()
-  return `${profile.vault_path}/finance/${yearMonth}.json`
-}
+type FinanceRecordsResponse = FinanceRecord[] | { records?: FinanceRecord[] }
 
 /** 指定月の家計記録を取得する (DB経由) */
 export async function getMonthRecords(yearMonth: string): Promise<FinanceRecord[]> {
@@ -18,7 +14,8 @@ export async function getMonthRecords(yearMonth: string): Promise<FinanceRecord[
     if (typeof window === 'undefined') return []
     const res = await fetch(`/api/finance/records?yearMonth=${yearMonth}`)
     if (!res.ok) return []
-    return await res.json()
+    const payload = (await res.json()) as FinanceRecordsResponse
+    return Array.isArray(payload) ? payload : (payload.records ?? [])
   } catch {
     return []
   }

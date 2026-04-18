@@ -9,6 +9,7 @@ export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isConfigured, setIsConfigured] = useState(false)
   const [quickLinks, setQuickLinks] = useState<QuickLink[]>([])
+  const aiConfigured = Boolean(profile?.ai_persona?.apiKey?.trim())
 
   useEffect(() => {
     const p = getSettings()
@@ -46,9 +47,10 @@ export default function Home() {
   if (!profile) return null
 
   const persona = profile.ai_persona
-  const diaryDescription = isAppEnabled('chat')
+  const diaryDescription = isAppEnabled('chat') && aiConfigured
     ? '今日の記録を書く（保存後にAI振り返り）'
     : '今日の記録を書く'
+  const chatDescription = aiConfigured ? 'AIに相談・整理する' : 'AI設定を行う'
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
@@ -144,6 +146,14 @@ export default function Home() {
             description={diaryDescription}
             onClick={() => router.push('/diary')}
           />
+          {isAppEnabled('chat') && (
+            <FeatureCard
+              icon="💬"
+              title="AIチャット"
+              description={chatDescription}
+              onClick={() => router.push(aiConfigured ? '/chat' : '/settings')}
+            />
+          )}
           <FeatureCard
             icon="✅"
             title="チェックリスト"

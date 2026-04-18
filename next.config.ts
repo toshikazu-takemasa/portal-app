@@ -1,10 +1,13 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  turbopack: {
+    root: __dirname,
+  },
   // Cloudflare Pages (OpenNext) に必要な standalone 出力
   // output: 'export' は OpenNext と競合するため使用しない
-  output: "standalone",
-};
+  output: 'standalone',
+}
 
-export default nextConfig;
+export default nextConfig
