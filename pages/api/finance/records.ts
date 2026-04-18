@@ -6,9 +6,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const db = getDb()
-
   try {
+    const db = getDb()
     if (req.method === 'GET') {
       const { yearMonth } = req.query
       if (!yearMonth || typeof yearMonth !== 'string') {
