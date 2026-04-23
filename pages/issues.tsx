@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { isAppEnabled, getSettings } from '@/profiles'
-import { appendToJournal, buildTaskReflectionMarkdown } from '@/domains/journal'
+import { upsertJournalSection, buildTaskReflectionMarkdown } from '@/domains/journal'
 import type { UnifiedTask } from '@/shared/types'
 
 const LABEL_COLORS: Record<string, string> = {
@@ -114,8 +114,9 @@ export default function IssuesPage() {
     setReflecting(true)
     setError('')
     try {
-      const snippet = buildTaskReflectionMarkdown(today, selected)
-      await appendToJournal(today, snippet)
+      const header = `## GitHub Issues（${today}）`
+      const snippet = buildTaskReflectionMarkdown(today, selected, { header })
+      await upsertJournalSection(today, snippet, header)
       setReflected(true)
       setTimeout(() => setReflected(false), 2500)
     } catch (e) {

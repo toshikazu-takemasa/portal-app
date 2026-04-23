@@ -16,6 +16,30 @@ function getTodayDateString() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
+/** テキスト内の URL を検出し、リンクとしてレンダリングする */
+function renderTitleWithLinks(title: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = title.split(urlRegex)
+
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-emerald-500 hover:underline break-all"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      )
+    }
+    return part
+  })
+}
+
 export default function ChecklistPage() {
   const router = useRouter()
   const today = getTodayDateString()
@@ -147,14 +171,17 @@ export default function ChecklistPage() {
                   {checklist.items.map((item) => (
                     <li
                       key={item.id}
-                      onClick={() => toggleItem(item.id)}
-                      className="flex items-center gap-3 cursor-pointer group select-none"
+                      className="flex items-center gap-3 group select-none py-1"
                     >
                       <span
-                        className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleItem(item.id)
+                        }}
+                        className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all cursor-pointer ${
                           item.completed
                             ? 'bg-emerald-500 border-emerald-500'
-                            : 'border-zinc-600 group-hover:border-zinc-400'
+                            : 'border-zinc-600 hover:border-zinc-400'
                         }`}
                       >
                         {item.completed && (
@@ -164,7 +191,7 @@ export default function ChecklistPage() {
                         )}
                       </span>
                       <span className={`text-sm transition-colors ${item.completed ? 'line-through text-zinc-600' : 'text-zinc-200'}`}>
-                        {item.title}
+                        {renderTitleWithLinks(item.title)}
                       </span>
                     </li>
                   ))}

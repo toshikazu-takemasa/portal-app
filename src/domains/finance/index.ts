@@ -4,45 +4,89 @@
 // データは vault/finance/YYYY-MM.json に保存する
 // ============================================================
 
+import { createStorageAdapter } from '@/profiles'
 import type { FinanceRecord } from '@/shared/types'
 
-type FinanceRecordsResponse = FinanceRecord[] | { records?: FinanceRecord[] }
-
-/** 指定月の家計記録を取得する (DB経由) */
+/** 指定月の家計記録を取得する */
 export async function getMonthRecords(yearMonth: string): Promise<FinanceRecord[]> {
   try {
     if (typeof window === 'undefined') return []
-    const res = await fetch(`/api/finance/records?yearMonth=${yearMonth}`)
-    if (!res.ok) return []
-    const payload = (await res.json()) as FinanceRecordsResponse
-    return Array.isArray(payload) ? payload : (payload.records ?? [])
+    const adapter = createStorageAdapter()
+    const path = `vault/finance/${yearMonth}.json`
+    const result = await adapter.getFile(path)
+    if (!result) return []
+    const data = JSON.parse(result.content)
+    return Array.isArray(data) ? data : (data.records ?? [])
   } catch {
     return []
   }
 }
 
-/** 家計記録を追加・更新する (DB経由) */
+/** 家計記録を追加・更新する */
 export async function saveRecord(record: FinanceRecord, yearMonth: string): Promise<void> {
   if (typeof window === 'undefined') return
-  const res = await fetch('/api/finance/records', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ record, yearMonth })
-  })
-  if (!res.ok) {
-    const payload = (await res.json().catch(() => null)) as { error?: string } | null
-    throw new Error(payload?.error ?? '保存に失敗しました')
+  const adapter = createStorageAdapter()
+  const path = `vault/finance/${yearMonth}.json`
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const existing = await adapter.getFile(path)
+    let records: FinanceRecord[] = []
+    let sha: string | undefined = undefined
+
+    if (existing) {
+      sha = existing.sha
+      try {
+        const data = JSON.parse(existing.content)
+        records = Array.isArray(data) ? data : (data.records ?? [])
+      } catch {}
+    }
+
+    // ID で上書きまたは新規追加
+    const idx = records.findIndex((r) => r.id === record.id)
+    if (idx !== -1) {
+      records[idx] = record
+    } else {
+      records.push(record)
+    }
+
+    try {
+      await adapter.saveFile(path, JSON.stringify(records, null, 2), sha)
+      return
+    } catch (e) {
+      if (attempt === 0 && String(e).includes('409')) continue
+      throw e
+    }
   }
 }
 
-/** 家計記録を削除する (DB経由) */
+/** 家計記録を削除する */
 export async function deleteRecord(id: string, yearMonth: string): Promise<void> {
   if (typeof window === 'undefined') return
-  const res = await fetch(`/api/finance/records?id=${encodeURIComponent(id)}`, {
-    method: 'DELETE'
-  })
-  if (!res.ok) {
-    throw new Error('削除に失敗しました')
+  const adapter = createStorageAdapter()
+  const path = `vault/finance/${yearMonth}.json`
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const existing = await adapter.getFile(path)
+    if (!existing) return
+
+    let records: FinanceRecord[] = []
+    try {
+      const data = JSON.parse(existing.content)
+      records = Array.isArray(data) ? data : (data.records ?? [])
+    } catch {
+      return
+    }
+
+    const newRecords = records.filter((r) => r.id !== id)
+    if (newRecords.length === records.length) return
+
+    try {
+      await adapter.saveFile(path, JSON.stringify(newRecords, null, 2), existing.sha)
+      return
+    } catch (e) {
+      if (attempt === 0 && String(e).includes('409')) continue
+      throw e
+    }
   }
 }
 

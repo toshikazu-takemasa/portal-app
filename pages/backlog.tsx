@@ -122,8 +122,9 @@ export default function BacklogPage() {
     setReflecting(true)
     setError('')
     try {
-      const snippet = buildTaskReflectionMarkdown(today, selected)
-      await upsertJournalSection(today, snippet, `## Backlog（${today}）`)
+      const header = `## Backlog（${today}）`
+      const snippet = buildTaskReflectionMarkdown(today, selected, { header })
+      await upsertJournalSection(today, snippet, header)
       setReflected(true)
       setTimeout(() => setReflected(false), 2500)
     } catch (e) {

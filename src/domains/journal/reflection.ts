@@ -26,9 +26,14 @@ const SOURCE_HEADING: Record<string, string> = {
  * UnifiedTask[] を日記用 Markdown スニペットに変換する
  * ソースごとに見出しを分けて列挙する
  */
-export function buildTaskReflectionMarkdown(date: string, tasks: UnifiedTask[]): string {
+export function buildTaskReflectionMarkdown(
+  date: string,
+  tasks: UnifiedTask[],
+  options: { header?: string } = {}
+): string {
+  const header = options.header ?? `## タスク（${date}）`
   if (tasks.length === 0) {
-    return `\n---\n\n## タスク（${date}）\n\n記録なし\n`
+    return `\n---\n\n${header}\n\n記録なし\n`
   }
 
   // ソースごとにグループ化
@@ -39,7 +44,7 @@ export function buildTaskReflectionMarkdown(date: string, tasks: UnifiedTask[]):
   }
 
   const sourceOrder: UnifiedTask['source'][] = ['daily', 'backlog', 'github', 'calendar']
-  const lines: string[] = [`\n---\n\n## タスク（${date}）\n`]
+  const lines: string[] = [`\n---\n\n${header}\n`]
 
   for (const source of sourceOrder) {
     const items = groups[source]
