@@ -54,13 +54,10 @@ export default function DiaryPage() {
     if (draft !== null) {
       setContent(draft)
       setLoading(false)
-      // サーバー取得はバックグラウンドで（差分があれば上書き）
+      // サーバー取得はバックグラウンドで（同期用の SHA のみ取得）
       getJournalByDate(date)
         .then((entry) => {
-          if (entry && entry.content !== draft) {
-            setContent(entry.content)
-            setSha(entry.sha)
-          } else if (entry) {
+          if (entry) {
             setSha(entry.sha)
           }
         })

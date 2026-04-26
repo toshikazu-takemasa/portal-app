@@ -58,7 +58,7 @@ export default function IssuesPage() {
     localStorage.setItem(CHECKED_KEY, JSON.stringify([...checkedIds]))
   }, [checkedIds, CHECKED_KEY])
 
-  const fetchTasks = useCallback(() => {
+  const fetchTasks = useCallback((force = false) => {
     const creds = getGithubCredentials()
     if (!creds) {
       setConfigured(false)
@@ -70,6 +70,21 @@ export default function IssuesPage() {
     setRepo(creds.repo)
     setLoading(true)
     setError('')
+
+    const CACHE_KEY = `github_tasks_${today}`
+
+    if (!force) {
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (cached) {
+        try {
+          setTasks(JSON.parse(cached))
+          setLoading(false)
+          return
+        } catch (e) {
+          localStorage.removeItem(CACHE_KEY)
+        }
+      }
+    }
 
     fetch('/api/tasks/github', {
       method: 'POST',
@@ -83,6 +98,7 @@ export default function IssuesPage() {
       .then((data) => {
         if (data.error) throw new Error(data.error)
         setTasks(data.tasks)
+        localStorage.setItem(`github_tasks_${today}`, JSON.stringify(data.tasks))
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
@@ -146,7 +162,7 @@ export default function IssuesPage() {
         <div className="flex-1" />
         {configured && (
           <button
-            onClick={fetchTasks}
+            onClick={() => fetchTasks(true)}
             disabled={loading}
             className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-30"
           >
