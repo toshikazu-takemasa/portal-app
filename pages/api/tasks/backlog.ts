@@ -15,6 +15,7 @@ interface BacklogIssueRaw {
   status: { name: string }
   priority: { name: string }
   dueDate: string | null
+  project: { name: string; projectKey: string }
 }
 
 const STATUS_MAP: Record<string, UnifiedTask['status']> = {
@@ -119,6 +120,8 @@ export default async function handler(
         url: `https://${spaceId}/view/${issue.issueKey}`,
       },
       labels: [],
+      projectName: issue.project.name,
+      systemStatus: { label: issue.status.name },
     }))
 
     res.status(200).json({ tasks })

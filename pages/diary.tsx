@@ -48,6 +48,26 @@ export default function DiaryPage() {
     setSummary('')
     setError('')
 
+    // 下書きがあれば優先して復元
+    const draftKey = `diary-draft-${date}`
+    const draft = typeof window !== 'undefined' ? localStorage.getItem(draftKey) : null
+    if (draft !== null) {
+      setContent(draft)
+      setLoading(false)
+      // サーバー取得はバックグラウンドで（差分があれば上書き）
+      getJournalByDate(date)
+        .then((entry) => {
+          if (entry && entry.content !== draft) {
+            setContent(entry.content)
+            setSha(entry.sha)
+          } else if (entry) {
+            setSha(entry.sha)
+          }
+        })
+        .catch((e) => setError(String(e)))
+      return
+    }
+
     getJournalByDate(date)
       .then((entry) => {
         if (entry) {
@@ -79,6 +99,11 @@ export default function DiaryPage() {
       const entry: JournalEntry = { date, content, sha }
       await saveJournalEntry(entry)
       setSaved(true)
+      // 保存成功時は下書きを消す
+      const draftKey = `diary-draft-${date}`
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(draftKey)
+      }
       const updated = await getJournalByDate(date)
       if (updated?.sha) setSha(updated.sha)
       getRecentDates(60).then(setRecentDates).catch(() => {})
@@ -181,6 +206,11 @@ export default function DiaryPage() {
                 onChange={(e) => {
                   setContent(e.target.value)
                   setSaved(false)
+                  // 入力時にlocalStorageへ一時保存
+                  const draftKey = `diary-draft-${date}`
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem(draftKey, e.target.value)
+                  }
                 }}
                 placeholder={`${date} の記録を書く...`}
                 className="w-full flex-1 min-h-[60dvh] bg-transparent text-zinc-100 text-sm leading-relaxed resize-none outline-none placeholder-zinc-700 font-sans"

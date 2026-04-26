@@ -49,6 +49,8 @@ export interface UnifiedTask {
   priority?: UnifiedTaskPriority
   externalRef?: { key: string; url?: string }
   labels?: string[]
+  projectName?: string
+  systemStatus?: { label: string }
 }
 
 export interface TaskQuery {

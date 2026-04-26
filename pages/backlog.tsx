@@ -212,8 +212,16 @@ export default function BacklogPage() {
                     </span>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${STATUS_COLOR[task.status]}`}>
                       {STATUS_LABEL[task.status]}
+                      {task.systemStatus?.label && task.systemStatus.label !== STATUS_LABEL[task.status] && (
+                        <span className="ml-1 opacity-70 text-[10px]">[{task.systemStatus.label}]</span>
+                      )}
                     </span>
                     <div className="flex-1 min-w-0">
+                      {task.projectName && (
+                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-0.5 truncate">
+                          {task.projectName}
+                        </div>
+                      )}
                       <p className="text-sm text-zinc-200 leading-snug">{task.title}</p>
                       <div className="flex items-center gap-3 mt-1.5">
                         {task.externalRef?.url ? (

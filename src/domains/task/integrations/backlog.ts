@@ -19,6 +19,7 @@ export interface BacklogIssue {
   priority: { name: string }
   dueDate: string | null
   updated: string
+  project: { name: string }
 }
 
 // ------------------------------------------------------------
@@ -77,6 +78,8 @@ export class BacklogProvider implements TaskIntegrationProvider {
       priority: PRIORITY_MAP[issue.priority.name] ?? undefined,
       externalRef: { key: issue.issueKey },
       labels: [],
+      projectName: issue.project.name,
+      systemStatus: { label: issue.status.name },
     }))
   }
 }
