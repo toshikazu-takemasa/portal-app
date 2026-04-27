@@ -31,6 +31,18 @@ const PRIORITY_MAP: Record<string, UnifiedTask['priority']> = {
   低: 'low',
 }
 
+/** SpaceID をホスト名としてサニタイズする */
+function sanitizeSpaceId(spaceId: string): string {
+  let s = spaceId.trim()
+  s = s.replace(/^https?:\/\//, '')
+  s = s.replace(/\/$/, '')
+  // サブドメインのみの場合は .backlog.jp を補完（利便性のため）
+  if (s && !s.includes('.')) {
+    s = `${s}.backlog.jp`
+  }
+  return s
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<{ tasks: UnifiedTask[] } | { error: string }>
@@ -39,26 +51,31 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { spaceId, apiKey, projectKeys } = req.body as {
+  const { spaceId: rawSpaceId, apiKey, projectKeys } = req.body as {
     spaceId?: string
     apiKey?: string
     projectKeys?: string // カンマ区切りのプロジェクトキー（省略時は全プロジェクト）
   }
 
-  if (!spaceId || !apiKey) {
+  if (!rawSpaceId || !apiKey) {
     return res.status(400).json({ error: '認証情報が不足しています（spaceId / apiKey）' })
   }
 
+  const spaceId = sanitizeSpaceId(rawSpaceId)
+
   try {
-    // 自分のユーザー ID を取得
+    // 1. 自分のユーザー ID を取得
     const myselfRes = await fetch(
       `https://${spaceId}/api/v2/users/myself?apiKey=${encodeURIComponent(apiKey)}`
-    )
-    if (!myselfRes.ok) throw new Error('Backlog API 認証エラー')
+    ).catch(err => { throw new Error(`Backlog への接続に失敗しました (${err.message})`) })
+
+    if (!myselfRes.ok) {
+      const errText = await myselfRes.text().catch(() => 'Unknown error')
+      throw new Error(`Backlog API 認証エラー (HTTP ${myselfRes.status}): ${errText}`)
+    }
     const myself = (await myselfRes.json()) as { id: number }
 
-    // 対象プロジェクトのステータスを並列取得し、「完了」以外の statusId を収集
-    // projectKeys 指定時はそのキーのみ、未指定時は全プロジェクトを検索（低速）
+    // 2. 対象プロジェクトのステータスを並列取得し、「完了」以外の statusId を収集
     const nonCompletedStatusIds = new Set<string>(['1', '2', '3']) // 標準ステータスを初期値として含む
     const targetKeys = projectKeys
       ? projectKeys.split(',').map((k) => k.trim()).filter(Boolean)
@@ -85,27 +102,36 @@ export default async function handler(
       )
       if (projectsRes.ok) {
         const projects = (await projectsRes.json()) as Array<{ id: number }>
-        const allStatuses = await Promise.all(
-          projects.map((p) =>
-            fetch(`https://${spaceId}/api/v2/projects/${p.id}/statuses?apiKey=${encodeURIComponent(apiKey)}`)
-              .then((r) => (r.ok ? r.json() : []))
-              .catch(() => [])
+        
+        // プロジェクト数が多すぎる場合はレート制限回避のためステータス取得を制限する
+        // 20個以上のプロジェクトがある場合は、標準ステータスのみでフィルタリングを行う（フォールバック）
+        if (projects.length > 0 && projects.length <= 20) {
+          const allStatuses = await Promise.all(
+            projects.map((p) =>
+              fetch(`https://${spaceId}/api/v2/projects/${p.id}/statuses?apiKey=${encodeURIComponent(apiKey)}`)
+                .then((r) => (r.ok ? r.json() : []))
+                .catch(() => [])
+            )
           )
-        )
-        for (const statuses of allStatuses) {
-          for (const s of statuses as Array<{ id: number; name: string }>) {
-            if (s.name !== '完了') nonCompletedStatusIds.add(String(s.id))
+          for (const statuses of allStatuses) {
+            for (const s of statuses as Array<{ id: number; name: string }>) {
+              if (s.name !== '完了') nonCompletedStatusIds.add(String(s.id))
+            }
           }
         }
       }
     }
 
+    // 3. 課題取得
     const params = new URLSearchParams({ apiKey, count: '100', order: 'updated' })
     for (const id of nonCompletedStatusIds) params.append('statusId[]', id)
     params.append('assigneeId[]', String(myself.id))
 
     const issuesRes = await fetch(`https://${spaceId}/api/v2/issues?${params.toString()}`)
-    if (!issuesRes.ok) throw new Error('Backlog 課題取得エラー')
+    if (!issuesRes.ok) {
+      const errText = await issuesRes.text().catch(() => 'Unknown error')
+      throw new Error(`Backlog 課題取得エラー (HTTP ${issuesRes.status}): ${errText}`)
+    }
     const issues = (await issuesRes.json()) as BacklogIssueRaw[]
 
     const tasks: UnifiedTask[] = issues.map((issue) => ({
@@ -126,6 +152,7 @@ export default async function handler(
 
     res.status(200).json({ tasks })
   } catch (e) {
-    res.status(500).json({ error: String(e) })
+    console.error('Backlog API Error:', e)
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
   }
 }

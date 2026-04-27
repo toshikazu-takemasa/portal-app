@@ -90,13 +90,23 @@ export class BacklogProvider implements TaskIntegrationProvider {
 
 /** Backlog の課題一覧を取得する */
 export async function getBacklogIssues(
-  spaceId: string,
+  spaceIdRaw: string,
   apiKey: string
 ): Promise<BacklogIssue[]> {
+  // SpaceID のサニタイズ
+  let spaceId = spaceIdRaw.trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
+  if (spaceId && !spaceId.includes('.')) {
+    spaceId = `${spaceId}.backlog.jp`
+  }
+
   const myselfRes = await fetch(
     `https://${spaceId}/api/v2/users/myself?apiKey=${encodeURIComponent(apiKey)}`
-  )
-  if (!myselfRes.ok) throw new Error('Backlog API 認証エラー')
+  ).catch(err => { throw new Error(`Backlog への接続に失敗しました (${err.message})`) })
+
+  if (!myselfRes.ok) {
+    const errText = await myselfRes.text().catch(() => 'Unknown error')
+    throw new Error(`Backlog API 認証エラー (HTTP ${myselfRes.status}): ${errText}`)
+  }
   const myself = (await myselfRes.json()) as { id: number }
 
   const params = new URLSearchParams({
@@ -113,6 +123,9 @@ export async function getBacklogIssues(
   const issuesRes = await fetch(
     `https://${spaceId}/api/v2/issues?${params.toString()}`
   )
-  if (!issuesRes.ok) throw new Error('Backlog 課題取得エラー')
+  if (!issuesRes.ok) {
+    const errText = await issuesRes.text().catch(() => 'Unknown error')
+    throw new Error(`Backlog 課題取得エラー (HTTP ${issuesRes.status}): ${errText}`)
+  }
   return issuesRes.json() as Promise<BacklogIssue[]>
 }
