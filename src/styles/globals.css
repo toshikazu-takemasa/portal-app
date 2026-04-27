@@ -1,3 +1,7 @@
+.avatar-img {
+  background: #18181b; /* 画像読み込み中の背景色（Tailwindのzinc-900相当） */
+  transition: background 0.2s;
+}
 @import "tailwindcss";
 
 :root {
