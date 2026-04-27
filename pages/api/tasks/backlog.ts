@@ -134,21 +134,33 @@ export default async function handler(
     }
     const issues = (await issuesRes.json()) as BacklogIssueRaw[]
 
-    const tasks: UnifiedTask[] = issues.map((issue) => ({
-      id: String(issue.id),
-      source: 'backlog' as const,
-      title: issue.summary,
-      status: STATUS_MAP[issue.status.name] ?? 'open',
-      dueDate: issue.dueDate?.split('T')[0] ?? undefined,
-      priority: PRIORITY_MAP[issue.priority.name] ?? undefined,
-      externalRef: {
-        key: issue.issueKey,
-        url: `https://${spaceId}/view/${issue.issueKey}`,
-      },
-      labels: [],
-      projectName: issue.project.name,
-      systemStatus: { label: issue.status.name },
-    }))
+    if (!Array.isArray(issues)) {
+      console.error('Backlog API returned non-array issues:', issues)
+      throw new Error('Backlog からの応答が不正です（配列が期待されました）')
+    }
+
+    const tasks: UnifiedTask[] = issues.map((issue) => {
+      // データの欠損に対する防衛的処理
+      const statusName = issue.status?.name ?? ''
+      const priorityName = issue.priority?.name ?? ''
+      const projectName = issue.project?.name ?? 'Unknown Project'
+
+      return {
+        id: String(issue.id),
+        source: 'backlog' as const,
+        title: issue.summary || '(無題)',
+        status: STATUS_MAP[statusName] ?? 'open',
+        dueDate: issue.dueDate?.split('T')[0] ?? undefined,
+        priority: PRIORITY_MAP[priorityName] ?? undefined,
+        externalRef: {
+          key: issue.issueKey,
+          url: `https://${spaceId}/view/${issue.issueKey}`,
+        },
+        labels: [],
+        projectName: projectName,
+        systemStatus: { label: statusName },
+      }
+    })
 
     res.status(200).json({ tasks })
   } catch (e) {

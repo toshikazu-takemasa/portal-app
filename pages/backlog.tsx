@@ -99,16 +99,21 @@ export default function BacklogPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ spaceId: creds.spaceId, apiKey: creds.apiKey, projectKeys: creds.projectKeys }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json() as Promise<{ tasks: UnifiedTask[]; error?: string }>
+      .then(async (res) => {
+        const isJson = res.headers.get('content-type')?.includes('application/json')
+        const data = isJson ? await res.json() : null
+
+        if (!res.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`)
+        }
+        return data as { tasks: UnifiedTask[]; error?: string }
       })
       .then((data) => {
         if (data.error) throw new Error(data.error)
         setTasks(data.tasks)
         localStorage.setItem(`backlog_tasks_${today}`, JSON.stringify(data.tasks))
       })
-      .catch((e) => setError(String(e)))
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
   }, [])
 
