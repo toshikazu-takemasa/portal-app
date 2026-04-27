@@ -116,19 +116,14 @@ export default function Home() {
           </div>
         )}
 
-        {/* AI 人格 挨拶 */}
-        {persona?.name && isConfigured && (
-          <div className="mb-8 flex items-center gap-3">
-            {persona.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={persona.avatarUrl}
-                alt={persona.name}
-                className="w-10 h-10 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <span className="text-3xl shrink-0">🤖</span>
-            )}
+        {/* AI 人格 挨拶 (アバター設定時のみ表示・フェードインでフラッシング防止) */}
+        {persona?.name && isConfigured && persona.avatarUrl && (
+          <div className="mb-8 flex items-center gap-3 fade-in-delayed">
+            <img
+              src={persona.avatarUrl}
+              alt={persona.name}
+              className="w-10 h-10 rounded-full object-cover shrink-0"
+            />
             <div>
               <p className="text-sm text-zinc-300">
                 おはよう、{persona.userCallName}。今日も一緒に頑張ろう。
