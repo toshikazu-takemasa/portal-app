@@ -9,6 +9,7 @@ export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isConfigured, setIsConfigured] = useState(false)
   const [quickLinks, setQuickLinks] = useState<QuickLink[]>([])
+  const [avatarSrc, setAvatarSrc] = useState<string>('')
   const aiConfigured = Boolean(profile?.ai_persona?.apiKey?.trim())
 
   useEffect(() => {
@@ -35,10 +36,26 @@ export default function Home() {
       // AI人格（vault/persona/persona.md を primary source として適用）
       adapter
         .getAiPersona()
-        .then((persona) => {
+        .then(async (persona) => {
           if (persona) {
             cacheAiPersona(p, persona)
             setProfile((prev) => prev ? applyVaultPersona(prev, persona) : prev)
+            // raw.githubusercontent.com はプライベートリポジトリにPAT認証が必要なためプロキシfetch
+            if (persona.avatarUrl?.startsWith('https://raw.githubusercontent.com/')) {
+              try {
+                const res = await fetch(persona.avatarUrl, {
+                  headers: { Authorization: `Bearer ${p.gh_pat}` },
+                })
+                if (res.ok) {
+                  const blob = await res.blob()
+                  setAvatarSrc(URL.createObjectURL(blob))
+                }
+              } catch {
+                // フォールバック: avatarUrl をそのまま使用
+              }
+            } else if (persona.avatarUrl) {
+              setAvatarSrc(persona.avatarUrl)
+            }
           }
         })
         .catch(() => {})
@@ -58,11 +75,11 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {persona?.avatarUrl ? (
+          {avatarSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={persona.avatarUrl}
-              alt={persona.name}
+              src={avatarSrc}
+              alt={persona?.name}
               className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
@@ -118,10 +135,10 @@ export default function Home() {
         )}
 
         {/* AI 人格 挨拶 (アバター設定時のみ表示・フェードインでフラッシング防止) */}
-        {persona?.name && isConfigured && persona.avatarUrl && (
+        {persona?.name && isConfigured && avatarSrc && (
           <div className="mb-8 flex items-center gap-3 fade-in-delayed">
             <img
-              src={persona.avatarUrl}
+              src={avatarSrc}
               alt={persona.name}
               className="w-10 h-10 rounded-full object-cover shrink-0 avatar-img"
               decoding="async"

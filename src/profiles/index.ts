@@ -9,6 +9,16 @@ import { GitHubStorageAdapter } from '@/storage/github'
 import type { StorageAdapter } from '@/storage/interface'
 
 const SETTINGS_KEY = 'portal_settings'
+const AI_PERSONA_CACHE_KEY = 'portal_ai_persona_cache'
+const AI_PERSONA_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24
+
+interface CachedAiPersona {
+  cachedAt: number
+  repo: string
+  branch: string
+  personaPath: string
+  persona: Partial<AiPersona>
+}
 
 // ------------------------------------------------------------
 // Default Settings
@@ -26,12 +36,12 @@ const DEFAULT_AI_PERSONA: AiPersona = {
 
 /** デフォルトの InstalledApp リスト */
 const DEFAULT_INSTALLED_APPS: InstalledApp[] = [
-  { appId: 'journal',       enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'checklist',     enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'chat',          enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'quicklinks',    enabled: true,  settings: {}, installedAt: '' },
-  { appId: 'finance',       enabled: false, settings: {}, installedAt: '' },
-  { appId: 'backlog',       enabled: false, settings: {}, installedAt: '' },
+  { appId: 'journal', enabled: true, settings: {}, installedAt: '' },
+  { appId: 'checklist', enabled: true, settings: {}, installedAt: '' },
+  { appId: 'chat', enabled: true, settings: {}, installedAt: '' },
+  { appId: 'quicklinks', enabled: true, settings: {}, installedAt: '' },
+  { appId: 'finance', enabled: false, settings: {}, installedAt: '' },
+  { appId: 'backlog', enabled: false, settings: {}, installedAt: '' },
   { appId: 'github-issues', enabled: false, settings: {}, installedAt: '' },
 ]
 
@@ -58,6 +68,42 @@ function isClient(): boolean {
   return typeof window !== 'undefined'
 }
 
+function getPersonaPath(settings: Pick<Profile, 'vault_path'>): string {
+  return `${settings.vault_path}/persona/persona.md`
+}
+
+function readCachedAiPersona(settings: Pick<Profile, 'github_repo' | 'github_branch' | 'vault_path'>): Partial<AiPersona> | null {
+  if (!isClient()) return null
+  const raw = localStorage.getItem(AI_PERSONA_CACHE_KEY)
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as CachedAiPersona
+    const expectedPersonaPath = getPersonaPath(settings as Pick<Profile, 'vault_path'>)
+    const isExpired = Date.now() - parsed.cachedAt > AI_PERSONA_CACHE_MAX_AGE_MS
+    const isSameSource =
+      parsed.repo === settings.github_repo &&
+      parsed.branch === settings.github_branch &&
+      parsed.personaPath === expectedPersonaPath
+
+    if (isExpired || !isSameSource) {
+      localStorage.removeItem(AI_PERSONA_CACHE_KEY)
+      return null
+    }
+
+    return parsed.persona ?? null
+  } catch {
+    localStorage.removeItem(AI_PERSONA_CACHE_KEY)
+    return null
+  }
+}
+
+function compactPersona(persona: Partial<AiPersona>): Partial<AiPersona> {
+  return Object.fromEntries(
+    Object.entries(persona).filter(([, v]) => v !== '' && v !== undefined)
+  ) as Partial<AiPersona>
+}
+
 /**
  * 旧 localStorage（features フィールド）からの互換マイグレーション
  * installedApps が存在しない旧データを DEFAULT_INSTALLED_APPS に変換する
@@ -66,13 +112,13 @@ function migrateOldSettings(parsed: Record<string, unknown>): InstalledApp[] {
   const now = new Date().toISOString()
   const features = (parsed.features ?? {}) as Record<string, boolean>
   return [
-    { appId: 'journal',       enabled: true,                        settings: {}, installedAt: now },
-    { appId: 'checklist',     enabled: true,                        settings: {}, installedAt: now },
-    { appId: 'chat',          enabled: true,                        settings: {}, installedAt: now },
-    { appId: 'quicklinks',    enabled: features.quick_links ?? true, settings: {}, installedAt: now },
-    { appId: 'finance',       enabled: features.finance   ?? false, settings: {}, installedAt: now },
-    { appId: 'backlog',       enabled: features.backlog   ?? false, settings: {}, installedAt: now },
-    { appId: 'github-issues', enabled: false,                       settings: {}, installedAt: now },
+    { appId: 'journal', enabled: true, settings: {}, installedAt: now },
+    { appId: 'checklist', enabled: true, settings: {}, installedAt: now },
+    { appId: 'chat', enabled: true, settings: {}, installedAt: now },
+    { appId: 'quicklinks', enabled: features.quick_links ?? true, settings: {}, installedAt: now },
+    { appId: 'finance', enabled: features.finance ?? false, settings: {}, installedAt: now },
+    { appId: 'backlog', enabled: features.backlog ?? false, settings: {}, installedAt: now },
+    { appId: 'github-issues', enabled: false, settings: {}, installedAt: now },
   ]
 }
 
@@ -98,11 +144,19 @@ export function getSettings(): Profile {
       installedApps.push({ appId: 'github-issues', enabled: false, settings: {}, installedAt: new Date().toISOString() })
     }
 
-    return {
+    const settings: Profile = {
       ...DEFAULT_SETTINGS,
       ...(parsed as Partial<Profile>),
-      ai_persona:   { ...DEFAULT_AI_PERSONA, ...((parsed.ai_persona ?? {}) as Partial<AiPersona>) },
+      ai_persona: { ...DEFAULT_AI_PERSONA, ...((parsed.ai_persona ?? {}) as Partial<AiPersona>) },
       installedApps,
+    }
+
+    const cachedPersona = readCachedAiPersona(settings)
+    if (!cachedPersona) return settings
+
+    return {
+      ...settings,
+      ai_persona: { ...settings.ai_persona, ...compactPersona(cachedPersona) },
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
@@ -130,13 +184,24 @@ export function isAppEnabled(appId: string): boolean {
  * providerId / model / apiKey は localStorage（設定画面）が正とする。
  */
 export function applyVaultPersona(settings: Profile, vaultPersona: Partial<AiPersona>): Profile {
-  const vaultFields = Object.fromEntries(
-    Object.entries(vaultPersona).filter(([, v]) => v !== '' && v !== undefined)
-  ) as Partial<AiPersona>
+  const vaultFields = compactPersona(vaultPersona)
   return {
     ...settings,
     ai_persona: { ...settings.ai_persona, ...vaultFields },
   }
+}
+
+/** vault人格をローカルキャッシュする（再訪時のavatar即時復元用） */
+export function cacheAiPersona(settings: Profile, persona: Partial<AiPersona>): void {
+  if (!isClient()) return
+  const payload: CachedAiPersona = {
+    cachedAt: Date.now(),
+    repo: settings.github_repo,
+    branch: settings.github_branch,
+    personaPath: getPersonaPath(settings),
+    persona: compactPersona(persona),
+  }
+  localStorage.setItem(AI_PERSONA_CACHE_KEY, JSON.stringify(payload))
 }
 
 // ------------------------------------------------------------
